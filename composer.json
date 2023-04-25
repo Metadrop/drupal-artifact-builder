@@ -1,0 +1,24 @@
+{
+    "name": "metadrop/drupal-artifact-builder",
+    "description": "Helper to generate drupal artifacts",
+    "type": "library",
+    "bin": [
+        "drupal-artifact-builder"
+    ],
+    "require": {
+        "symfony/console": "^4 || ^5 || ^6",
+        "symfony/process": "^4 || ^5 || ^6"
+    },
+    "authors": [
+        {
+            "name": "Omar",
+            "email": "omar.lopesino@metadrop.net"
+        }
+    ],
+    "minimum-stability": "dev",
+    "autoload": {
+        "psr-4": {
+            "DrupalArtifactBuilder\\": "src/"
+        }
+    }
+}
