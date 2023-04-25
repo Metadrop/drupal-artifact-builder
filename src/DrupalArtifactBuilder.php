@@ -123,7 +123,7 @@ class DrupalArtifactBuilder extends Command {
 
     $this->log(sprintf('Artifact generation finished successfully in the %s folder', self::ARTIFACT_FOLDER));
     $this->log("Take into account that the operation removed development packages so you may want to run 'composer install'");
-    $this->log("Please, complete the process with:\n  - Adding a tag (if needed)\n  - Merging with master (if this is a prod release)\n  - git push\n")
+    $this->log("Please, complete the process with:\n  - Adding a tag (if needed)\n  - Merging with master (if this is a prod release)\n  - git push\n");
 
     return 0;
   }
