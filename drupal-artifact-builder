@@ -19,7 +19,9 @@ if (file_exists($autoloadFile = __DIR__ . '/vendor/autoload.php')
 }
 
 use Symfony\Component\Console\Application;
+use DrupalArtifactBuilder\DrupalArtifactBuilder;
+$app->add(new DrupalArtifactBuilder());
 
 $app = new Application();
-$app->setDefaultCommand('report');
+$app->setDefaultCommand('build');
 $app->run();
