@@ -11,6 +11,11 @@ use Symfony\Component\Process\Process;
 
 /**
  * Generates an artifact from a site already that is already setup.
+ *
+ * @TODO:
+ *   - Create two helper commands, one for building, and other for pushing.
+ *   - Use this command only to call the other two commands.
+ *   - Add the git author parameter.
  */
 class DrupalArtifactBuilder extends Command {
 
