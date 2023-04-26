@@ -17,6 +17,8 @@ class DrupalArtifactBuilderGit extends BaseCommand {
 
   protected static $defaultName = 'git';
 
+  protected string $author;
+
   /**
    * {@inheritdoc}
    */
@@ -24,6 +26,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
     parent::configure();
     $this->setDescription('Commit and push artifact changes to git.');
     $this->addOption('repository', 'repo', InputOption::VALUE_REQUIRED,'Git repository URL / SSH');
+    $this->addOption('author', 'a', InputOption::VALUE_REQUIRED,'Git commit author', 'Drupal <drupal@artifact-builder>');
   }
 
   /**
@@ -38,6 +41,8 @@ class DrupalArtifactBuilderGit extends BaseCommand {
     $this->log(sprintf('Selected %s branch', $this->branch));
 
     $this->assertArtifactExists();
+
+    $this->author = $input->getOption('author');
   }
 
   /**
@@ -115,7 +120,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
     chdir(self::ARTIFACT_FOLDER);
     $this->log('Commiting and pushing changes to the artifact repository...');
     $this->runCommand('git add .');
-    $this->runCommand('git commit -m "Artifact commit by artifact generation script"');
+    $this->runCommand(sprintf('git commit -m "Artifact commit by artifact generation script" --author="%s"', $this->author));
     $this->runCommand(sprintf('git push origin', $this->branch));
     $this->log('Changes pushed to the artifact repository');
     chdir($this->rootFolder);
