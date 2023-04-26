@@ -92,6 +92,7 @@ class DrupalArtifactBuilder extends Command {
     $this->addOption('extra-paths', 'ef', InputOption::VALUE_OPTIONAL, 'Separated by commas list of extra paths that must be copied.');
     $this->addOption('symlink', 'sm', InputOption::VALUE_REQUIRED, 'Symbolic link location of the codebase', 'public_html');
     $this->addOption('no-symlink', 'no-sm', InputOption::VALUE_NONE, 'Add this parameter to not create a symlink');
+    $this->addOption('no-push', 'nop', InputOption::VALUE_NONE, "If set, the changes won't be commited to git. Use only if you plan to push in other way.");
   }
 
   /**
