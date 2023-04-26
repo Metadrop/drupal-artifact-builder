@@ -19,6 +19,15 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
   /**
    * {@inheritdoc}
    */
+  protected function configure() {
+    parent::configure();
+    $this->setDescription('Creates an artifact and push the changes to git.');
+    $this->addOption('repository', 'repo', InputOption::VALUE_OPTIONAL);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   protected function execute(InputInterface $input, OutputInterface $output) {
     $this->generateArtifact();
     return 0;

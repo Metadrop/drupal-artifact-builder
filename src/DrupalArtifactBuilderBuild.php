@@ -17,6 +17,22 @@ class DrupalArtifactBuilderBuild extends BaseCommand {
 
   protected static $defaultName = 'build';
 
+  protected function configure()
+  {
+    parent::configure();
+    $this->setDescription('Creates an artifact and push the changes to git.');
+    $this->addOption('repository', 'repo', InputOption::VALUE_REQUIRED,'Git repository URL / SSH');
+  }
+
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function initialize(InputInterface $input, OutputInterface $output) {
+    parent::initialize($input, $output);
+    $this->assertRepositoryParameter();
+  }
+
   /**
    * {@inheritdoc}
    */

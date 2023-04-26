@@ -81,9 +81,7 @@ class BaseCommand extends Command {
    */
   protected function configure() {
     parent::configure();
-    $this->setDescription('Helper to generate drupal artifacts.');
     $this->addOption('docroot', 'docroot', InputOption::VALUE_REQUIRED,'Name of the docroot folder', 'web');
-    $this->addOption('repository', 'repo', InputOption::VALUE_REQUIRED,'Git repository URL / SSH', '');
     $this->addOption('extra-paths', 'ef', InputOption::VALUE_OPTIONAL, 'Separated by commas list of extra paths that must be copied.');
     $this->addOption('symlink', 'sm', InputOption::VALUE_REQUIRED, 'Symbolic link location of the codebase', 'public_html');
     $this->addOption('no-symlink', 'no-sm', InputOption::VALUE_NONE, 'Add this parameter to not create a symlink');

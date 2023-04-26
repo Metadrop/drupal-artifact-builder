@@ -20,6 +20,15 @@ class DrupalArtifactBuilderGit extends BaseCommand {
   /**
    * {@inheritdoc}
    */
+  protected function configure() {
+    parent::configure();
+    $this->setDescription('Commit and push artifact changes to git.');
+    $this->addOption('repository', 'repo', InputOption::VALUE_REQUIRED,'Git repository URL / SSH');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   protected function initialize(InputInterface $input, OutputInterface $output) {
     parent::initialize($input, $output);
 
