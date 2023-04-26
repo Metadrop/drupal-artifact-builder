@@ -24,15 +24,6 @@ class DrupalArtifactBuilderBuild extends BaseCommand {
     $this->addOption('repository', 'repo', InputOption::VALUE_REQUIRED,'Git repository URL / SSH');
   }
 
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function initialize(InputInterface $input, OutputInterface $output) {
-    parent::initialize($input, $output);
-    $this->assertRepositoryParameter();
-  }
-
   /**
    * {@inheritdoc}
    */
