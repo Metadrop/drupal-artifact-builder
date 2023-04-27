@@ -61,40 +61,21 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
     $this->copy('drush');
     $this->copy('vendor');
     $this->copy('scripts');
-    $this->copy($this->docrootFolder);
     $this->copy('patches');
+
+    // Any file or folder that may be present in the site .
+    $optional_paths = ['docroot', 'web', 'public_html'];
+
+    foreach ($optional_paths as $file) {
+      if (file_exists($file)) {
+        $this->copy($file);
+      }
+    }
 
     if (!empty($this->extraPaths)) {
       foreach (explode(',') as $path) {
         $this->copy($path);
       }
-    }
-
-    // Generates the symbolic link.
-    if ($this->generateSymlink) {
-      chdir(self::ARTIFACT_FOLDER);
-
-      $symlink_parts = explode('/', $this->symlink);
-      // When the symlink has one or more folders behind,
-      // the symlink is calculated so it takes in account every sublevel
-      // and the symlink does not appear broken.
-      if (count($symlink_parts) > 1) {
-        array_pop($symlink_parts);
-        $this->runCommand(sprintf('mkdir -p %s', implode('/', $symlink_parts)));
-        $directory_levels = count($symlink_parts);
-        $directory_levels_string = '';
-        for ($i = 0; $i < $directory_levels; $i++) {
-          $directory_levels_string  .= '../';
-        }
-        $this->runCommand(sprintf('ln -s %s%s %s', $directory_levels_string, $this->docrootFolder, $this->symlink));
-      }
-      else {
-        $this->runCommand(sprintf('ln -s %s %s', $this->docrootFolder, $this->symlink));
-      }
-
-      $this->log(sprintf('Symlink generated from %s to %s', $this->docrootFolder, $this->symlink));
-
-      chdir($this->rootFolder);
     }
 
     $this->log('Artifact generated successfully');
