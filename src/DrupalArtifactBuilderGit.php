@@ -105,8 +105,10 @@ class DrupalArtifactBuilderGit extends BaseCommand {
       $this->cleanFileFromArtifact($file);
     }
 
-    // Clean .git folders on contrib modules to avoid Acquia detect them as submodules.
-    $this->runCommand(sprintf('find %s/modules/contrib -name ".git" -exec rm -fr {} +', $this->docrootFolder));
+    // Clean .git folders on contrib modules to avoid git detect them as submodules.
+    $this->runCommand(sprintf('find %s/modules/contrib -name ".git" -exec rm -fr {} +', $this->calculateDocrootFolder()));
+    $this->runCommand(sprintf('find %s/themes/contrib -name ".git" -exec rm -fr {} +', $this->calculateDocrootFolder()));
+    $this->runCommand('find vendor -name ".git" -exec rm -fr {} +');
 
     chdir($this->rootFolder);
 
