@@ -140,29 +140,6 @@ class DrupalArtifactBuilderGit extends BaseCommand {
   }
 
   /**
-   * Assert the script is launched inside a codebase and not in an arbitrary folder.
-   */
-  protected function assertRootLocation() {
-    foreach ([$this->docrootFolder, 'config', 'composer.json'] as $path) {
-      if (!file_exists($path)) {
-        throw new \RuntimeException('It seems this command has not been launched the repository root folder. Please run it from root folder.');
-      }
-    }
-  }
-
-  /**
-   * Assert the repository does not contains changes / untracked files.
-   *
-   * @throws \Exception
-   */
-  protected function assertRepositoryIsClean() {
-    $num_changes = (int) trim($this->runCommand('git status --porcelain | grep -v .env |wc -l')->getOutput());
-    if ($num_changes > 0) {
-      throw new \Exception('There are changes in the repository (changed and/or untracked files), please run this artifact generation script with folder tree clean.');
-    }
-  }
-
-  /**
    * Generate git ignore file.
    */
   protected function generateGitIgnore() {
