@@ -73,7 +73,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
       // Add hash.txt file with current source repository hash to know what hash is
       // deployed in an environment just checking an url.
       $hash = trim($this->runCommand('git rev-parse HEAD')->getOutput());
-      $this->runCommand(sprintf('echo %s > %s/%s/hash.txt', $hash, self::ARTIFACT_FOLDER, $this->docrootFolder));
+      $this->runCommand(sprintf('echo %s > %s/%s/hash.txt', $hash, self::ARTIFACT_FOLDER, $this->calculateDocrootFolder()));
       $this->log('Added hash file');
     }
     catch (\Exception $e) {
