@@ -17,8 +17,10 @@ class DrupalArtifactBuilderBuild extends BaseCommand {
 
   protected static $defaultName = 'build';
 
-  protected function configure()
-  {
+  /**
+   * {@inheritdoc}
+   */
+  protected function configure() {
     parent::configure();
     $this->setDescription('Creates an artifact and push the changes to git.');
     $this->addOption('repository', 'repo', InputOption::VALUE_REQUIRED,'Git repository URL / SSH');
@@ -35,6 +37,12 @@ class DrupalArtifactBuilderBuild extends BaseCommand {
     $this->log('Adding changes to git');
     $this->getApplication()->find('git')
       ->run($input, $output);
+
+
+    $this->log(sprintf('Artifact generation finished successfully in the %s folder', self::ARTIFACT_FOLDER));
+    $this->log("Take into account that the operation removed development packages so you may want to run 'composer install'");
+    $this->log("Please, complete the process with:\n  - Adding a tag (if needed)\n  - Merging with master (if this is a prod release)\n  - git push\n");
+
     return 0;
   }
 
