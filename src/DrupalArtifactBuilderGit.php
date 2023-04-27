@@ -145,7 +145,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
    * Generate git ignore file.
    */
   protected function generateGitIgnore() {
-    $docroot_folder = $this->docrootFolder;
+    $docroot_folder = $this->calculateDocrootFolder();
     $git_ignore = "# Ignore sensitive information.
 /$docroot_folder/sites/*/settings.local.php
 # Ignore local drush settings

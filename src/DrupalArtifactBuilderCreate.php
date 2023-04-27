@@ -62,6 +62,8 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
     $this->copy('vendor');
     $this->copy('scripts');
     $this->copy('patches');
+    $this->copy('composer.json');
+    $this->copy('composer.lock');
 
     // Any file or folder that may be present in the site .
     $optional_paths = ['docroot', 'web', 'public_html'];

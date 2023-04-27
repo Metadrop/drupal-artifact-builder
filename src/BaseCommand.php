@@ -159,7 +159,7 @@ class BaseCommand extends Command {
    */
   protected function calculateDocrootFolder() {
     foreach (['docroot', 'web'] as $docrootFolder) {
-      if (file_exists($docrootFolder)) {
+      if (file_exists($docrootFolder) && !is_link($docrootFolder)) {
         return $docrootFolder;
       }
     }
