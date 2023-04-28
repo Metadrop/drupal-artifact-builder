@@ -10,7 +10,6 @@ composer require metadrop/drupal-artifact-builder
 
 ## Usage
 
-
 Builds the artifact and push the changes to git:
 
 ```
@@ -23,7 +22,7 @@ Only generates the artifact:
 drupal-artifact-builder create
 ```
 
-Track the changes into git:
+Only track the changes into git (it is needed to generate the artifact first):
 
 ```
 drupal-artifact-builder git --repository git@example.com:example/example.git
@@ -34,6 +33,5 @@ drupal-artifact-builder git --repository git@example.com:example/example.git
 - **extra-paths**: Allow adding more paths to the artifact.
 
 ```
-drupal-artifact-builder --repository git@example.com:example/example.git --extra-paths=
+drupal-artifact-builder --repository git@example.com:example/example.git --extra-paths=oauth.json,mycustomapp
 ```
-
