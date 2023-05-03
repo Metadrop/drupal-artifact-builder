@@ -74,7 +74,7 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
     }
 
     if (!empty($this->extraPaths)) {
-      foreach (explode(',') as $path) {
+      foreach (explode(',', $this->extraPaths) as $path) {
         $this->copy($path);
       }
     }
