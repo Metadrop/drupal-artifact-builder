@@ -61,7 +61,6 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
     $this->copy('drush');
     $this->copy('vendor');
     $this->copy('scripts');
-    $this->copy('patches');
     $this->copy('composer.json');
     $this->copy('composer.lock');
 
