@@ -86,22 +86,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
 
     chdir(self::ARTIFACT_FOLDER);
 
-    $files_to_clean = [
-      'CHANGELOG.txt',
-      'COPYRIGHT.txt',
-      'INSTALL.txt',
-      'INSTALL.mysql.txt',
-      'INSTALL.pgsql.txt',
-      'INSTALL.sqlite.txt',
-      'LICENSE.txt',
-      'README.txt',
-      'CHANGELOG.txt',
-      'UPDATE.txt',
-      'USAGE.txt',
-      'PATCHES.txt',
-    ];
-
-    foreach ($files_to_clean as $file) {
+    foreach (self::FILES_TO_CLEAN as $file) {
       $this->cleanFileFromArtifact($file);
     }
 

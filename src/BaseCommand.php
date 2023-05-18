@@ -20,6 +20,21 @@ class BaseCommand extends Command {
 
   const ARTIFACT_REPOSITORY_FOLDER = 'deploy-artifact-repository';
 
+  const FILES_TO_CLEAN = [
+    'CHANGELOG.txt',
+    'COPYRIGHT.txt',
+    'INSTALL.txt',
+    'INSTALL.mysql.txt',
+    'INSTALL.pgsql.txt',
+    'INSTALL.sqlite.txt',
+    'LICENSE.txt',
+    'README.txt',
+    'CHANGELOG.txt',
+    'UPDATE.txt',
+    'USAGE.txt',
+    'PATCHES.txt',
+  ];
+
   /**
    * Branch where the artifact will be created.
    *
@@ -145,8 +160,13 @@ class BaseCommand extends Command {
    * @throws \Exception
    */
   protected function assertRepositoryIsClean() {
-    $num_changes = (int) trim($this->runCommand('git status --porcelain | grep -v .env |wc -l')->getOutput());
+    $files_to_clean_command = implode('|', array_map(function ($file) {
+      return sprintf('grep -v %s', $file);
+    }, self::FILES_TO_CLEAN));
+    $git_status_ignore_files_command = sprintf('grep -v .env | %s', $files_to_clean_command);
+    $num_changes = (int) trim($this->runCommand(sprintf('git status --porcelain | %s | wc -l', $git_status_ignore_files_command))->getOutput());
     if ($num_changes > 0) {
+      $files_changed = trim($this->runCommand('git status -s | grep %s', $git_status_ignore_files_command)->getOutput());
       throw new \Exception('There are changes in the repository (changed and/or untracked files), please run this artifact generation script with folder tree clean.');
     }
   }
