@@ -166,8 +166,8 @@ class BaseCommand extends Command {
     $git_status_ignore_files_command = sprintf('grep -v .env | %s', $files_to_clean_command);
     $num_changes = (int) trim($this->runCommand(sprintf('git status --porcelain | %s | wc -l', $git_status_ignore_files_command))->getOutput());
     if ($num_changes > 0) {
-      $files_changed = trim($this->runCommand('git status -s | grep %s', $git_status_ignore_files_command)->getOutput());
-      throw new \Exception('There are changes in the repository (changed and/or untracked files), please run this artifact generation script with folder tree clean.');
+      $files_changed = trim($this->runCommand(sprintf('git status -s | %s', $git_status_ignore_files_command))->getOutput());
+      throw new \Exception("There are changes in the repository (changed and/or untracked files), please run this artifact generation script with folder tree clean. Files changed: \n $files_changed");
     }
   }
 
