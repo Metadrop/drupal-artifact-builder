@@ -101,6 +101,27 @@ class DrupalArtifactBuilderGit extends BaseCommand {
   }
 
   /**
+   * Keep the latest N commits in the artifact repository.
+   *
+   * In this way the artifact repository will not have a really big size.
+   *
+   * @param int $commits_number
+   *   Number of commits to keep.
+   */
+  protected function keepLatestCommits(int $commits_number) {
+    $this->log(sprintf('Keeping only latest %s commits', $commits_number));
+    $hash = trim($this->runCommand(sprintf('git rev-parse %s', $this->branch))->getOutput());
+    $this->log(sprintf('Current branch: %s %s', $this->branch, $hash));
+    $last_commit_to_keep = trim($this->runCommand(sprintf('git rev-parse %s~%s', $this->branch, (string) ($commits_number -1)))->getOutput());
+    $this->log(sprintf('Recreating $b branch with initial commit $c ...', $this->branch, $last_commit_to_keep));
+    $this->runCommand(sprintf('git checkout --orphan new-start %s', $last_commit_to_keep));
+    $this->runCommand(sprintf('git commit -C %s', $last_commit_to_keep));
+    $this->runCommand(sprintf('git rebase --onto new-start %s %s', $last_commit_to_keep, $this->branch));
+    $this->runCommand(sprintf('git branch -d new-start', $last_commit_to_keep, $this->branch));
+    $this->runCommand('git gc');
+  }
+
+  /**
    * Commit and push all the changes.
    */
   protected function gitCommitPush() {
@@ -108,7 +129,8 @@ class DrupalArtifactBuilderGit extends BaseCommand {
     $this->log('Commiting and pushing changes to the artifact repository...');
     $this->runCommand('git add .');
     $this->runCommand(sprintf('git commit -m "Artifact commit by artifact generation script" --author="%s"', $this->author));
-    $this->runCommand(sprintf('git push origin', $this->branch));
+    $this->keepLatestCommits(5);
+    $this->runCommand(sprintf('git push -f origin %s', $this->branch));
     $this->log('Changes pushed to the artifact repository');
     chdir($this->rootFolder);
   }
