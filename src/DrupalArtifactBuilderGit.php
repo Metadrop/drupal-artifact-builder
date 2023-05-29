@@ -22,6 +22,8 @@ class DrupalArtifactBuilderGit extends BaseCommand {
 
   protected int $commitsNumber;
 
+  protected string $commitData;
+
   /**
    * {@inheritdoc}
    */
@@ -85,7 +87,9 @@ class DrupalArtifactBuilderGit extends BaseCommand {
       // Add hash.txt file with current source repository hash to know what hash is
       // deployed in an environment just checking an url.
       $hash = trim($this->runCommand('git rev-parse HEAD')->getOutput());
-      $this->runCommand(sprintf('echo %s > %s/%s/hash.txt', $hash, self::ARTIFACT_FOLDER, $this->calculateDocrootFolder()));
+      $tags = trim($this->runCommand('printf -- " %s" $(git tag --points-at HEAD)')->getOutput());
+      $this->commitData = !empty($tags) ?  sprintf('%s (%s)', $hash, str_replace(' ', ',', $tags)) : $hash;
+      $this->runCommand(sprintf('echo "%s" > %s/%s/hash.txt', $this->commitData, self::ARTIFACT_FOLDER, $this->calculateDocrootFolder()));
       $this->log('Added hash file');
     }
     catch (\Exception $e) {
@@ -143,7 +147,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
     chdir(self::ARTIFACT_FOLDER);
     $this->log('Commiting and pushing changes to the artifact repository...');
     $this->runCommand('git add .');
-    $this->runCommand(sprintf('git commit -m "Artifact commit by artifact generation script" --author="%s"', $this->author));
+    $this->runCommand(sprintf('git commit -m "Artifact commit by artifact generation script" -m "%s" --author="%s"',$this->commitData, $this->author));
     $this->keepLatestCommits($this->commitsNumber);
     $this->runCommand(sprintf('git push -f origin %s', $this->branch));
     $this->log('Changes pushed to the artifact repository');
