@@ -93,7 +93,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
       $this->log('Added hash file');
     }
     catch (\Exception $e) {
-      throw new \RuntimeException('Could not generate commit hash to place in the artifact folder');
+      throw new \RuntimeException('Could not generate commit hash to place in the artifact folder: ' . $e->getMessage());
     }
 
     $this->generateGitIgnore();
