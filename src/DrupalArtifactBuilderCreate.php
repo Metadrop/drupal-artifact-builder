@@ -23,7 +23,7 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
     parent::configure();
     $this->setDescription('Creates an artifact and push the changes to git.');
     $this->addOption('repository', 'repo', InputOption::VALUE_OPTIONAL);
-    $this->addOption('commits-number', 'cn', InputOption::VALUE_OPTIONAL,'Number of commits to keep from artifact', 5);
+    $this->addOption('commits-number', 'cn', InputOption::VALUE_OPTIONAL,'Number of commits to keep from artifact', 10);
   }
 
   /**
