@@ -4,6 +4,7 @@ namespace DrupalArtifactBuilder;
 
 use PHP_CodeSniffer\Tests\Core\File\testFECNClassThatImplementsAndExtends;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Exception\InvalidOptionException;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -19,6 +20,8 @@ class DrupalArtifactBuilderGit extends BaseCommand {
 
   protected string $author;
 
+  protected int $commitsNumber;
+
   /**
    * {@inheritdoc}
    */
@@ -26,6 +29,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
     parent::configure();
     $this->setDescription('Commit and push artifact changes to git.');
     $this->addOption('repository', 'repo', InputOption::VALUE_REQUIRED,'Git repository URL / SSH');
+    $this->addOption('commits-number', 'cn', InputOption::VALUE_REQUIRED,'Number of commits to keep from artifact', 5);
     $this->addOption('author', 'a', InputOption::VALUE_REQUIRED,'Git commit author', 'Drupal <drupal@artifact-builder>');
   }
 
@@ -43,6 +47,14 @@ class DrupalArtifactBuilderGit extends BaseCommand {
     $this->assertArtifactExists();
 
     $this->author = $input->getOption('author');
+
+    $commits_number = $input->getOption('commits-number');
+    if ((int) $commits_number < 1) {
+      throw new InvalidOptionException('Number of commits to keep in artifact must be equal or greater than 1.');
+    }
+
+    $this->commitsNumber = $commits_number;
+    $this->log(sprintf('Number of commits to keep in the %s branch: %s', $this->branch, $this->commitsNumber));
   }
 
   /**
@@ -109,16 +121,19 @@ class DrupalArtifactBuilderGit extends BaseCommand {
    *   Number of commits to keep.
    */
   protected function keepLatestCommits(int $commits_number) {
-    $this->log(sprintf('Keeping only latest %s commits', $commits_number));
-    $hash = trim($this->runCommand(sprintf('git rev-parse %s', $this->branch))->getOutput());
-    $this->log(sprintf('Current branch: %s %s', $this->branch, $hash));
-    $last_commit_to_keep = trim($this->runCommand(sprintf('git rev-parse %s~%s', $this->branch, (string) ($commits_number -1)))->getOutput());
-    $this->log(sprintf('Recreating $b branch with initial commit $c ...', $this->branch, $last_commit_to_keep));
-    $this->runCommand(sprintf('git checkout --orphan new-start %s', $last_commit_to_keep));
-    $this->runCommand(sprintf('git commit -C %s', $last_commit_to_keep));
-    $this->runCommand(sprintf('git rebase --onto new-start %s %s', $last_commit_to_keep, $this->branch));
-    $this->runCommand(sprintf('git branch -d new-start', $last_commit_to_keep, $this->branch));
-    $this->runCommand('git gc');
+    $total_commits = (int) trim($this->runCommand(sprintf('git log %s --oneline | wc -l', $this->branch))->getOutput());
+    if ($commits_number < $total_commits) {
+      $this->log(sprintf('Keeping only latest %s commits', $commits_number));
+      $hash = trim($this->runCommand(sprintf('git rev-parse %s', $this->branch))->getOutput());
+      $this->log(sprintf('Current branch: %s. Latest %s commit: %s', $this->branch, $this->branch, $hash));
+      $last_commit_to_keep = trim($this->runCommand(sprintf('git rev-parse %s~%s', $this->branch, (string) ($commits_number -1)))->getOutput());
+      $this->log(sprintf('Recreating %s branch with initial commit %s ...', $this->branch, $last_commit_to_keep));
+      $this->runCommand(sprintf('git checkout --orphan new-start %s', $last_commit_to_keep));
+      $this->runCommand(sprintf('git commit -C %s', $last_commit_to_keep));
+      $this->runCommand(sprintf('git rebase --onto new-start %s %s', $last_commit_to_keep, $this->branch));
+      $this->runCommand(sprintf('git branch -d new-start', $last_commit_to_keep, $this->branch));
+      $this->runCommand('git gc');
+    }
   }
 
   /**
