@@ -144,7 +144,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
     $this->log('Commiting and pushing changes to the artifact repository...');
     $this->runCommand('git add .');
     $this->runCommand(sprintf('git commit -m "Artifact commit by artifact generation script" --author="%s"', $this->author));
-    $this->keepLatestCommits(5);
+    $this->keepLatestCommits($this->commitsNumber);
     $this->runCommand(sprintf('git push -f origin %s', $this->branch));
     $this->log('Changes pushed to the artifact repository');
     chdir($this->rootFolder);
