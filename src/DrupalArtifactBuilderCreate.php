@@ -41,7 +41,7 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
   protected function generateArtifact() {
     // Create the folder with the artifact.
     $this->createArtifactFolder();
-    $this->assertRepositoryIsClean();
+    $this->assertArtifactContentIsClean();
 
     $this->log('Cleaning previous artifact');
     $this->log('##########################');

@@ -89,7 +89,7 @@ class BaseCommand extends Command {
 
     // Assert the site is working okay before starting to create the artifact
     $this->assertRootLocation();
-    $this->assertRepositoryIsClean();
+    $this->assertArtifactContentIsClean();
   }
 
   /**
@@ -159,14 +159,17 @@ class BaseCommand extends Command {
    *
    * @throws \Exception
    */
-  protected function assertRepositoryIsClean() {
-    $files_to_clean_command = implode('|', array_map(function ($file) {
-      return sprintf('grep -v %s', $file);
-    }, self::FILES_TO_CLEAN));
-    $git_status_ignore_files_command = sprintf('grep -v .env | %s', $files_to_clean_command);
-    $num_changes = (int) trim($this->runCommand(sprintf('git status --porcelain | %s | wc -l', $git_status_ignore_files_command))->getOutput());
+  protected function assertArtifactContentIsClean() {
+    $artifact_content = array_unique(array_merge(
+      [$this->calculateDocrootFolder()],
+      $this->getRequiredFolders(),
+      $this->getSymlinks(),
+      $this->getExtraPaths(),
+    ));
+    $filter_artifact_command = sprintf('grep -E "%s"', implode('|', $artifact_content));
+    $num_changes = (int) trim($this->runCommand(sprintf('git status --porcelain | %s | wc -l', $filter_artifact_command))->getOutput());
     if ($num_changes > 0) {
-      $files_changed = trim($this->runCommand(sprintf('git status -s | %s', $git_status_ignore_files_command))->getOutput());
+      $files_changed = trim($this->runCommand(sprintf('git status -s | %s', $filter_artifact_command))->getOutput());
       throw new \Exception("There are changes in the repository (changed and/or untracked files), please run this artifact generation script with folder tree clean. Files changed: \n $files_changed");
     }
   }
@@ -184,6 +187,31 @@ class BaseCommand extends Command {
       }
     }
     throw new \Exception('Docroot folder not found');
+  }
+
+  protected function getRequiredFolders() {
+    return [
+      'config',
+      'drush',
+      'vendor',
+      'scripts',
+      'composer.json',
+      'composer.json',
+    ];
+  }
+
+  /**
+   * Get the symlinks that may be commited to the artifact.
+   *
+   * @return string[]
+   *   Name of the symlink.
+   */
+  protected function getSymlinks() {
+    return ['docroot', 'web', 'public_html'];
+  }
+
+  protected function getExtraPaths() {
+    return !empty($this->extraPaths) ? explode(',', $this->extraPaths) : [];
   }
 
 }
