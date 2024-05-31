@@ -166,10 +166,11 @@ class BaseCommand extends Command {
       $this->getSymlinks(),
       $this->getExtraPaths(),
     ));
-    $filter_artifact_command = sprintf('grep -E "%s"', implode('|', $artifact_content));
-    $num_changes = (int) trim($this->runCommand(sprintf('git status --porcelain | %s | wc -l', $filter_artifact_command))->getOutput());
+    $filter_artifact_command = sprintf('grep -E "^(%s)"', implode('|', $artifact_content));
+    $git_status_command = sprintf("git status -s | awk '{print $2}' | %s", $filter_artifact_command);
+    $num_changes = (int) trim($this->runCommand(sprintf("%s | wc -l", $git_status_command))->getOutput());
     if ($num_changes > 0) {
-      $files_changed = trim($this->runCommand(sprintf('git status -s | %s', $filter_artifact_command))->getOutput());
+      $files_changed = trim($this->runCommand($git_status_command)->getOutput());
       throw new \Exception("There are changes in the repository (changed and/or untracked files), please run this artifact generation script with folder tree clean. Files changed: \n $files_changed");
     }
   }
