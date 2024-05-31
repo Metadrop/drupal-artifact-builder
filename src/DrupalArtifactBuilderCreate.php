@@ -57,26 +57,18 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
     // Copy all needed files.
     $this->log('Starting source copy to artifact repository folder');
     $this->log('##################################################');
-    $this->copy('config');
-    $this->copy('drush');
-    $this->copy('vendor');
-    $this->copy('scripts');
-    $this->copy('composer.json');
-    $this->copy('composer.lock');
+    foreach ($this->getRequiredFolders() as $folder) {
+      $this->copy($folder);
+    }
 
-    // Any file or folder that may be present in the site .
-    $optional_paths = ['docroot', 'web', 'public_html'];
-
-    foreach ($optional_paths as $file) {
+    foreach ($this->getSymlinks() as $file) {
       if (file_exists($file)) {
         $this->copy($file);
       }
     }
 
-    if (!empty($this->extraPaths)) {
-      foreach (explode(',', $this->extraPaths) as $path) {
-        $this->copy($path);
-      }
+    foreach ($this->getExtraPaths() as $path) {
+      $this->copy($path);
     }
 
     $this->log('Artifact generated successfully');
