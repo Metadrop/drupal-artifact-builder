@@ -57,7 +57,7 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
     // Copy all needed files.
     $this->log('Starting source copy to artifact repository folder');
     $this->log('##################################################');
-    foreach ($this->getRequiredFolders() as $folder) {
+    foreach ($this->getRequiredFiles() as $folder) {
       $this->copy($folder);
     }
 

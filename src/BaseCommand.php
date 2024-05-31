@@ -157,12 +157,15 @@ class BaseCommand extends Command {
   /**
    * Assert the repository does not contains changes / untracked files.
    *
+   * This is only checked in the artifact managed files. Files that are
+   * not added to the artifacct are ignored.
+   *
    * @throws \Exception
    */
   protected function assertArtifactContentIsClean() {
     $artifact_content = array_unique(array_merge(
       [$this->calculateDocrootFolder()],
-      $this->getRequiredFolders(),
+      $this->getRequiredFiles(),
       $this->getSymlinks(),
       $this->getExtraPaths(),
     ));
@@ -190,7 +193,13 @@ class BaseCommand extends Command {
     throw new \Exception('Docroot folder not found');
   }
 
-  protected function getRequiredFolders() {
+  /**
+   * Get the file or folders that are required to add to the artifact.
+   *
+   * @return string[]
+   *   Relative path.
+   */
+  protected function getRequiredFiles() {
     return [
       'config',
       'drush',
@@ -205,12 +214,18 @@ class BaseCommand extends Command {
    * Get the symlinks that may be commited to the artifact.
    *
    * @return string[]
-   *   Name of the symlink.
+   *   Relative path of the symlinks.
    */
   protected function getSymlinks() {
     return ['docroot', 'web', 'public_html'];
   }
 
+  /**
+   * Extra file/folders that will be added to the artifact.
+   *
+   * @return array|string[]
+   *   Relative path to the file or folder.
+   */
   protected function getExtraPaths() {
     return !empty($this->extraPaths) ? explode(',', $this->extraPaths) : [];
   }
