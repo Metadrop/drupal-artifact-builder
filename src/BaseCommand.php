@@ -206,7 +206,7 @@ class BaseCommand extends Command {
       'vendor',
       'scripts',
       'composer.json',
-      'composer.json',
+      'composer.lock',
     ];
   }
 
