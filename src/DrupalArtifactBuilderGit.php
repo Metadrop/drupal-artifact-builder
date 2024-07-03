@@ -105,11 +105,20 @@ class DrupalArtifactBuilderGit extends BaseCommand {
    */
   protected function gitCommitPush() {
     chdir(self::ARTIFACT_FOLDER);
-    $this->log('Commiting and pushing changes to the artifact repository...');
     $this->runCommand('git add .');
-    $this->runCommand(sprintf('git commit -m "Artifact commit by artifact generation script" --author="%s"', $this->author));
-    $this->runCommand(sprintf('git push origin', $this->branch));
-    $this->log('Changes pushed to the artifact repository');
+    // Check if there are changes to commit.
+    $diff = $this->runCommand('git diff --cached --name-only');
+    $diff_output = trim($diff->getOutput());
+    if (!empty($diff_output)) {
+      $this->log('Commiting and pushing changes to the artifact repository:');
+      $this->log($diff_output);
+      $this->runCommand(sprintf('git commit -m "Artifact commit by artifact generation script" --author="%s"', $this->author));
+      $this->runCommand(sprintf('git push origin', $this->branch));
+      $this->log('Changes pushed to the artifact repository');
+    }
+    else {
+      $this->log('No changes to commit!');
+    }
     chdir($this->rootFolder);
   }
 
