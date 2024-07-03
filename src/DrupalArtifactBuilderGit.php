@@ -65,7 +65,15 @@ class DrupalArtifactBuilderGit extends BaseCommand {
     // This is done after creating the artifact and not before
     // so there are no residual files, plus giving more options
     // to create artifacts than pushing the changes to a git repository (s.e.: generating a .tar.gz.).
-    $this->runCommand(sprintf('git clone %s %s -b %s', $this->repository, self::ARTIFACT_REPOSITORY_FOLDER, $this->branch));
+    $this->runCommand(sprintf('git clone %s %s', $this->repository, self::ARTIFACT_REPOSITORY_FOLDER));
+
+    // Checkout to the branch (create if new):
+    chdir(self::ARTIFACT_REPOSITORY_FOLDER);
+    $ls_remote = $this->runCommand(sprintf('git ls-remote --heads origin %s', $this->branch));
+    $ls_remote_output = trim($ls_remote->getOutput());
+    $this->runCommand(sprintf('git checkout %s %s', empty($ls_remote_output) ? '-b': '', $this->branch));
+    chdir($this->rootFolder);
+
     $this->runCommand(sprintf('cp -r %s/.git %s', self::ARTIFACT_REPOSITORY_FOLDER, SELF::ARTIFACT_FOLDER));
     $this->runCommand(sprintf('rm -rf %s', self::ARTIFACT_REPOSITORY_FOLDER));
 
@@ -113,7 +121,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
       $this->log('Commiting and pushing changes to the artifact repository:');
       $this->log($diff_output);
       $this->runCommand(sprintf('git commit -m "Artifact commit by artifact generation script" --author="%s"', $this->author));
-      $this->runCommand(sprintf('git push origin', $this->branch));
+      $this->runCommand(sprintf('git push origin %s', $this->branch));
       $this->log('Changes pushed to the artifact repository');
     }
     else {
