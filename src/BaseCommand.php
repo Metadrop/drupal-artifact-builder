@@ -135,7 +135,7 @@ class BaseCommand extends Command {
   protected function getCurrentBranch() {
     $branch = trim($this->runCommand('echo ${GIT_BRANCH:-$(git branch --show-current)}')->getOutput());
     if (empty($branch)) {
-      throw new \RuntimeException("Could not detect the selected branch. Either you didn't set GIT_BRANCH environment variable or you are in deatached mode");
+      throw new \RuntimeException("Could not detect the selected branch. Either you didn't set GIT_BRANCH environment variable or you are in detached mode");
     }
 
     return $branch;
