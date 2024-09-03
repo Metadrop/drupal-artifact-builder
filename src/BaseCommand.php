@@ -105,6 +105,8 @@ class BaseCommand extends Command {
    *   When the command fails.
    */
   protected function runCommand(string $command) {
+    $this->log(sprintf('Running shell command: «%s»', $command));
+
     $process = Process::fromShellCommandline($command);
     $process->setTimeout(300);
     $process->run();
