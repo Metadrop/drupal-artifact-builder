@@ -105,6 +105,8 @@ class BaseCommand extends Command {
    *   When the command fails.
    */
   protected function runCommand(string $command) {
+    $this->log(sprintf('Running shell command: «%s»', $command));
+
     $process = Process::fromShellCommandline($command);
     $process->setTimeout(300);
     $process->run();
@@ -133,7 +135,7 @@ class BaseCommand extends Command {
   protected function getCurrentBranch() {
     $branch = trim($this->runCommand('echo ${GIT_BRANCH:-$(git branch --show-current)}')->getOutput());
     if (empty($branch)) {
-      throw new \RuntimeException("Could not detect the selected branch. Either you didn't set GIT_BRANCH environment variable or you are in deatached mode");
+      throw new \RuntimeException("Could not detect the selected branch. Either you didn't set GIT_BRANCH environment variable or you are in detached mode");
     }
 
     return $branch;
@@ -169,12 +171,10 @@ class BaseCommand extends Command {
       $this->getSymlinks(),
       $this->getExtraPaths(),
     ));
-    $filter_artifact_command = sprintf('grep -E "^(%s)"', implode('|', $artifact_content));
-    $git_status_command = sprintf("git status -s | awk '{print $2}' | %s", $filter_artifact_command);
-    $num_changes = (int) trim($this->runCommand(sprintf("%s | wc -l", $git_status_command))->getOutput());
-    if ($num_changes > 0) {
-      $files_changed = trim($this->runCommand($git_status_command)->getOutput());
-      throw new \Exception("There are changes in the repository (changed and/or untracked files), please run this artifact generation script with folder tree clean. Files changed: \n $files_changed");
+    $files_changed = trim($this->runCommand(sprintf("git status -s %s", implode(' ', $artifact_content)))->getOutput());
+    if (strlen($files_changed > 0)) {
+      $list = implode("\n", array_map(function($item) { $parts = explode(' ', $item); return $parts[1]; }, explode("\n", $files_changed)));
+      throw new \Exception("There are changes in the repository (changed and/or untracked files), please run this artifact generation script with folder tree clean. Files changed:\n$list");
     }
   }
 
