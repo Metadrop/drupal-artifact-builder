@@ -227,10 +227,7 @@ node_modules/
       return $current_branch;
     }
 
-
-    if (empty($branch)) {
-      throw new \RuntimeException("Could not detect a branch. Either you didn't set --branch option or you are in detached mode");
-    }
+    throw new \RuntimeException("Could not detect a branch. Either you didn't set --branch option or you are in detached mode");
   }
 
 }
