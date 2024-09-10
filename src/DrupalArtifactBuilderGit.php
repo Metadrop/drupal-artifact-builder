@@ -26,6 +26,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
     parent::configure();
     $this->setDescription('Commit and push artifact changes to git.');
     $this->addOption('repository', 'repo', InputOption::VALUE_REQUIRED,'Git repository URL / SSH');
+    $this->addOption('branch', 'b', InputOption::VALUE_REQUIRED,'Git branch');
     $this->addOption('author', 'a', InputOption::VALUE_REQUIRED,'Git commit author', 'Drupal <drupal@artifact-builder>');
   }
 
@@ -37,9 +38,8 @@ class DrupalArtifactBuilderGit extends BaseCommand {
 
     // Branch setup.
     $this->repository = $input->getOption('repository');
-    $this->branch = $this->getCurrentBranch();
+    $this->branch = $this->getBranch($input);
     $this->log(sprintf('Selected %s branch', $this->branch));
-
     $this->assertArtifactExists();
 
     $this->author = $input->getOption('author');
@@ -205,6 +205,29 @@ node_modules/
     if (!file_exists(self::ARTIFACT_FOLDER) || count(glob(sprintf('%s/%s', self::ARTIFACT_FOLDER, '*'))) == 0) {
       throw new \Exception('Artifact does not exists');
     }
+  }
+
+  /**
+   * Get the name of the repository branch.
+   *
+   * @param \Symfony\Component\Console\Input\InputInterface
+   *   Shell input, used to get the branch from options.
+   *
+   * @return string
+   *   Branch name.
+   */
+  protected function getBranch(InputInterface $input) {
+    $branch_from_input = $input->getOption('branch');
+    if (!empty($branch_from_input)) {
+      return $branch_from_input;
+    }
+
+    $current_branch = trim($this->runCommand('echo $(git branch --show-current)')->getOutput());
+    if (!empty($current_branch)) {
+      return $current_branch;
+    }
+
+    throw new \RuntimeException("Could not detect a branch. Either you didn't set --branch option or you are in detached mode");
   }
 
 }
