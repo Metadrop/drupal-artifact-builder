@@ -15,8 +15,6 @@ use Symfony\Component\Process\Process;
  */
 class DrupalArtifactBuilderBuild extends BaseCommand {
 
-  protected static $defaultName = 'build';
-
   /**
    * {@inheritdoc}
    */
@@ -29,7 +27,7 @@ class DrupalArtifactBuilderBuild extends BaseCommand {
   /**
    * {@inheritdoc}
    */
-  protected function execute(InputInterface $input, OutputInterface $output) {
+  protected function execute(InputInterface $input, OutputInterface $output) : int {
     $this->log('Generating artifact');
     $this->getApplication()->find('create')
       ->run($input, $output);

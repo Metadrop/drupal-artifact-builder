@@ -48,7 +48,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
   /**
    * {@inheritdoc}
    */
-  protected function execute(InputInterface $input, OutputInterface $output) {
+  protected function execute(InputInterface $input, OutputInterface $output) : int {
     $this->gitSetup();
     $this->gitCommitPush();
 

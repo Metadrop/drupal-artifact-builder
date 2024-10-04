@@ -21,8 +21,8 @@ if (file_exists($autoloadFile = __DIR__ . '/vendor/autoload.php')
 use Symfony\Component\Console\Application;
 
 $app = new Application();
-$app->add(new \DrupalArtifactBuilder\DrupalArtifactBuilderGit());
-$app->add(new \DrupalArtifactBuilder\DrupalArtifactBuilderCreate());
-$app->add(new \DrupalArtifactBuilder\DrupalArtifactBuilderBuild());
+$app->add(new \DrupalArtifactBuilder\DrupalArtifactBuilderGit('git'));
+$app->add(new \DrupalArtifactBuilder\DrupalArtifactBuilderCreate('create'));
+$app->add(new \DrupalArtifactBuilder\DrupalArtifactBuilderBuild('build'));
 $app->setDefaultCommand('build');
 $app->run();
