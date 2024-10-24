@@ -9,6 +9,9 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Yaml\Yaml;
+use DrupalArtifactBuilder\Config\ConfigurableInterface;
+use DrupalArtifactBuilder\Config\ConfigInterface;
+use DrupalArtifactBuilder\Config\Config;
 
 /**
  * Generates an artifact from a site already that is already setup.

@@ -1,6 +1,6 @@
 <?php
 
-namespace DrupalArtifactBuilder;
+namespace DrupalArtifactBuilder\Config;
 
 interface ConfigInterface
 {

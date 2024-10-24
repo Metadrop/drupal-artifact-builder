@@ -1,6 +1,6 @@
 <?php
 
-namespace DrupalArtifactBuilder;
+namespace DrupalArtifactBuilder\Config;
 
 /**
  * Allow a command to has its own configuration.
