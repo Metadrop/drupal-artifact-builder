@@ -20,7 +20,6 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
   protected function configure() {
     parent::configure();
     $this->setDescription('Creates an artifact and push the changes to git.');
-    $this->addOption('repository', 'repo', InputOption::VALUE_OPTIONAL);
   }
 
   /**
@@ -65,7 +64,7 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
       }
     }
 
-    foreach ($this->getExtraPaths() as $path) {
+    foreach ($this->getConfiguration()->getInclude() as $path) {
       $this->copy($path);
     }
 

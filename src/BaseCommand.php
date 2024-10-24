@@ -8,11 +8,12 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Generates an artifact from a site already that is already setup.
  */
-class BaseCommand extends Command {
+class BaseCommand extends Command implements ConfigurableInterface {
 
   protected static $defaultName = 'build';
 
@@ -36,32 +37,13 @@ class BaseCommand extends Command {
   ];
 
   /**
-   * Branch where the artifact will be created.
-   *
-   * Its value will be set with the current branch.
-   *
-   * @var string
-   */
-  protected string $branch;
-
-  /**
-   * URL / SSH of the repository.
-   *
-   * @var string
-   */
-  protected string $repository;
-
-  /**
-   * Extra paths which will be used to generate the artifact.
-   */
-  protected ?string $extraPaths;
-
-  /**
    * Folder with the codebase.
    *
    * @var string
    */
   protected string $rootFolder;
+
+  protected ConfigInterface $config;
 
   /**
    * Used to show messages during the artifact building.
@@ -75,7 +57,23 @@ class BaseCommand extends Command {
    */
   protected function configure() {
     parent::configure();
-    $this->addOption('extra-paths', 'ef', InputOption::VALUE_OPTIONAL, 'Separated by commas list of extra paths that must be copied.');
+    $this->addOption('config', 'c', InputOption::VALUE_REQUIRED, 'The path to the configuration file.', '.drupal-artifact-builder.yml');
+    $this->addOption('include', 'i', InputOption::VALUE_OPTIONAL, 'Separated by commas list of files or folders that must be additionally included into the artifact.');
+    $this->addOption('repository', 'repo', InputOption::VALUE_OPTIONAL, 'Git repository URL / SSH');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setConfiguration(ConfigInterface $configuration) : void {
+    $this->config = $configuration;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getConfiguration() : ConfigInterface {
+    return $this->config;
   }
 
   /**
@@ -85,7 +83,12 @@ class BaseCommand extends Command {
     // Variables initialization.
     $this->output = $output;
     $this->rootFolder = getcwd();
-    $this->extraPaths = $input->getOption('extra-paths');
+    if (!isset($this->config))
+    $this->setupConfig($input->getOption('config'));
+
+    if ($input->hasOption('include') && !empty($input->getOption('include'))) {
+      $this->getConfiguration()->setInclude(explode(', ', $input->getOption('include')));
+    }
 
     // Assert the site is working okay before starting to create the artifact
     $this->assertRootLocation();
@@ -114,6 +117,21 @@ class BaseCommand extends Command {
       throw new ProcessFailedException($process);
     }
     return $process;
+  }
+
+  protected function setupConfig(string $configuration_filepath) {
+    $this->log(sprintf('Selected configuration file: %s', $configuration_filepath));
+
+    if (file_exists($configuration_filepath)) {
+      $this->log(sprintf('Configuration file found at %s', $configuration_filepath));
+      $config = Config::createFromConfigurationFile($configuration_filepath);
+
+    }
+    else {
+      $this->log(sprintf('No configuration file found at %s. Using command line parameters.', $configuration_filepath));
+      $config = new Config();
+    }
+    $this->setConfiguration($config);
   }
 
   /**
@@ -154,7 +172,7 @@ class BaseCommand extends Command {
       [$this->calculateDocrootFolder()],
       $this->getRequiredFiles(),
       $this->getSymlinks(),
-      $this->getExtraPaths(),
+      $this->getConfiguration()->getInclude(),
     ));
     $files_changed = trim($this->runCommand(sprintf("git status -s %s", implode(' ', $artifact_content)))->getOutput());
     if (strlen($files_changed > 0)) {
@@ -163,6 +181,16 @@ class BaseCommand extends Command {
     }
   }
 
+  /**
+   * Assert the repository is set.
+   *
+   * @throws \Exception
+   */
+  protected function assertRepository() {
+    if (empty($this->getConfiguration()->getRepository())) {
+      throw new \Exception('Repository must be defined to continue!');
+    }
+  }
   /**
    * Calculate where is the docroot folder.
    *
@@ -203,16 +231,6 @@ class BaseCommand extends Command {
    */
   protected function getSymlinks() {
     return ['docroot', 'web', 'public_html'];
-  }
-
-  /**
-   * Extra file/folders that will be added to the artifact.
-   *
-   * @return array|string[]
-   *   Relative path to the file or folder.
-   */
-  protected function getExtraPaths() {
-    return !empty($this->extraPaths) ? explode(',', $this->extraPaths) : [];
   }
 
 }
