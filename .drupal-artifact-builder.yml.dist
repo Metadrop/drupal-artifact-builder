@@ -1,0 +1,6 @@
+# Repository URL (git SSH / git HTTP URL).
+repository: git@github.com:example/example-artifact.git
+# Extra files or folders to include into the artifact.
+include: []
+# It will be the author used in git commits.
+author: John Doe <passionate.developer@example.com>
