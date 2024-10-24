@@ -49,13 +49,24 @@ drupal-artifact-builder git --repository git@example.com:example/example.git
 
 ### Parameters
 
+
+- **config**: Allow setting the configuration file. Defaults to .drupal-artifact-builder.yml
+
+```
+drupal-artifact-builder git  folder/.drupal-artifact-builder.custom.yml
+```
+
+
 - **repository**: Selects the repository where the artifacts will be pushed.
 
 Examples:
+
+For the complete command (create + git):
 ```
 drupal-artifact-builder --repository git@example.com:example/example.git
 ```
 
+For the git command:
 ```
 drupal-artifact-builder git --repository git@example.com:example/example.git
 ```
@@ -64,5 +75,5 @@ drupal-artifact-builder git --repository git@example.com:example/example.git
 - **include**: Allow adding more paths to the artifact.
 
 ```
-drupal-artifact-builder --repository git@example.com:example/example.git --extra-paths=oauth.json,mycustomapp
+drupal-artifact-builder --repository git@example.com:example/example.git --include=oauth.json,mycustomapp
 ```
