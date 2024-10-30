@@ -67,13 +67,19 @@ class DrupalArtifactBuilderGit extends BaseCommand {
     // This is done after creating the artifact and not before
     // so there are no residual files, plus giving more options
     // to create artifacts than pushing the changes to a git repository (s.e.: generating a .tar.gz.).
-    $this->runCommand(sprintf('git clone %s %s', $this->getConfiguration()->getRepository(), self::ARTIFACT_REPOSITORY_FOLDER));
+    $this->runCommand(sprintf('git clone --depth 1 %s %s', $this->getConfiguration()->getRepository(), self::ARTIFACT_REPOSITORY_FOLDER));
 
     // Checkout to the branch (create if new):
     chdir(self::ARTIFACT_REPOSITORY_FOLDER);
-    $ls_remote = $this->runCommand(sprintf('git ls-remote --heads origin %s', $this->getConfiguration()->getBranch()));
+    $branch = $this->getConfiguration()->getBranch();
+    $ls_remote = $this->runCommand(sprintf('git ls-remote --heads origin %s', $branch));
     $ls_remote_output = trim($ls_remote->getOutput());
-    $this->runCommand(sprintf('git checkout %s %s', empty($ls_remote_output) ? '-b': '', $this->getConfiguration()->getBranch()));
+    $branch_exists = !empty($ls_remote_output);
+    if ($branch_exists) {
+      $this->runCommand(sprintf('git fetch --depth 1 origin %s', $branch));
+    }
+
+    $this->runCommand(sprintf('git checkout %s %s', !$branch_exists ? '-b': '', $this->getConfiguration()->getBranch()));
     chdir($this->rootFolder);
 
     $this->runCommand(sprintf('cp -r %s/.git %s', self::ARTIFACT_REPOSITORY_FOLDER, SELF::ARTIFACT_FOLDER));
