@@ -41,12 +41,6 @@ Only generates the artifact:
 drupal-artifact-builder create
 ```
 
-Only track the changes into git (it is needed to generate the artifact first):
-
-```
-drupal-artifact-builder git --repository git@example.com:example/example.git
-```
-
 ### Parameters
 
 
