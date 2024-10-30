@@ -35,10 +35,16 @@ Builds the artifact and push the changes to git:
 drupal-artifact-builder
 ```
 
-Only generates the artifact:
+Generate the artifact:
 
 ```
 drupal-artifact-builder create
+```
+
+Push the created artifact to git:
+
+```
+drupal-artifact-builder git
 ```
 
 ### Parameters
