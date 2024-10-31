@@ -34,7 +34,9 @@ cp vendor/metadrop/drupal-artifact-builder/.drupal-artifact-builder.yml.dist .dr
 
     Example:
     ```yaml
-    include: []
+    include:
+      - oauth
+      - solr
     ```
 
 - **author**: It will be the author used in git commits.

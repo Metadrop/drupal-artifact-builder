@@ -3,8 +3,13 @@
 repository: git@github.com:example/example-artifact.git
 
 # include
-# Extra files or folders to include into the artifact.
+# List of extra files or folders to include into the artifact.
 include: []
+
+# Example of include with files:
+# include:
+#   - solr
+#   - oauth
 
 # author
 # It will be the author used in git commits.
