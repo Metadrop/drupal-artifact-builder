@@ -240,7 +240,7 @@ node_modules/
       return $branch_from_input;
     }
 
-    $current_branch = trim($this->runCommand('echo ${GIT_BRANCH:-$(git branch --show-current)}')->getOutput());
+    $current_branch = trim($this->runCommand('git branch --show-current')->getOutput());
     if (!empty($current_branch)) {
       return $current_branch;
     }
