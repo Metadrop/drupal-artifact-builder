@@ -126,7 +126,7 @@ class Config implements ConfigInterface {
 
     foreach ($array_fields as $array_field) {
       if (isset($configuration[$array_field]) && !is_array($configuration[$array_field])) {
-        throw new \InvalidArgumentException('"%s" config key must be a string, %s given!', $array_field, gettype($configuration[$array_field]));
+        throw new \InvalidArgumentException(sprintf('"%s" config key must be an array, %s given!', $array_field, gettype($configuration[$array_field])));
       }
     }
 
