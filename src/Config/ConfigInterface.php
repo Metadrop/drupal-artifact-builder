@@ -4,6 +4,9 @@ namespace DrupalArtifactBuilder\Config;
 
 interface ConfigInterface
 {
+
+  const DEFAULT_COMMIT_AUTHOR = 'Drupal <drupal@artifact-builder>';
+
   /**
    * Branch where artifact is pushed.
    *

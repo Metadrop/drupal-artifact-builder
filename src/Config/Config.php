@@ -65,7 +65,7 @@ class Config implements ConfigInterface {
   }
 
   public function getAuthor() : string {
-    return $this->author;
+    return $this->author ?? self::DEFAULT_COMMIT_AUTHOR;
   }
 
   /**

@@ -23,7 +23,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
     parent::configure();
     $this->setDescription('Commit and push artifact changes to git.');
     $this->addOption('branch', 'b', InputOption::VALUE_REQUIRED,'Git branch');
-    $this->addOption('author', 'a', InputOption::VALUE_REQUIRED,'Git commit author', 'Drupal <drupal@artifact-builder>');
+    $this->addOption('author', 'a', InputOption::VALUE_REQUIRED,'Git commit author');
   }
 
   /**
@@ -45,6 +45,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
     if ($input->hasOption('author') && !empty($input->getOption('author'))) {
       $this->getConfiguration()->setAuthor($input->getOption('author'));
     }
+    $this->log(sprintf('Commit author: %s', $this->getConfiguration()->getAuthor()));
 
     $this->assertRepository();
   }
