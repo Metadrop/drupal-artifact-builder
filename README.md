@@ -104,3 +104,45 @@ drupal-artifact-builder git --repository git@example.com:example/example.git
 ```
 drupal-artifact-builder --repository git@example.com:example/example.git --include=oauth.json,mycustomapp
 ```
+
+## Upgrade from 1.x to 2.x
+
+2.0.0 release brings breaking changes and the way to use drupal-artifact-builder changes.
+
+These steps must be followed in order to upgrade to the 2.0.0 version:
+
+1. Copy and configure .drupal-artifact-builder.yml:
+
+Now the default usage is using
+
+```
+cp vendor/metadrop/drupal-artifact-builder/.drupal-artifact-builder.yml.dist .drupal-artifact-builder.yml
+```
+
+2. Change --extra-paths parameters to --include
+
+Before:
+
+```bash
+drupal-artifact-builder --extra-paths solr
+```
+
+Now:
+
+```bash
+drupal-artifact-builder --include solr
+```
+
+3. Stop using GIT_BRANCH environment variable, not it is --branch
+
+Before:
+
+```bash
+GIT_BRANCH=develop drupal-artifact-builder
+```
+
+Now:
+
+```bash
+drupal-artifact-builder --branch develop
+```
