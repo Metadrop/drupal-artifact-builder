@@ -111,7 +111,7 @@ drupal-artifact-builder --repository git@example.com:example/example.git --inclu
 
 These steps must be followed in order to upgrade to the 2.0.0 version:
 
-1. Copy and configure .drupal-artifact-builder.yml:
+**1)** Copy and configure .drupal-artifact-builder.yml:
 
 Now the default usage is using
 
@@ -119,7 +119,7 @@ Now the default usage is using
 cp vendor/metadrop/drupal-artifact-builder/.drupal-artifact-builder.yml.dist .drupal-artifact-builder.yml
 ```
 
-2. Change --extra-paths parameters to --include
+**2)** Change --extra-paths parameters to --include
 
 Before:
 
@@ -133,7 +133,7 @@ Now:
 drupal-artifact-builder --include solr
 ```
 
-3. Stop using GIT_BRANCH environment variable, not it is --branch
+**3)** Stop using GIT_BRANCH environment variable, not it is --branch
 
 Before:
 
