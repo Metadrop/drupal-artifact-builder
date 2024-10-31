@@ -25,32 +25,32 @@ cp vendor/metadrop/drupal-artifact-builder/.drupal-artifact-builder.yml.dist .dr
 
 - **repository**: Repository URL (git SSH / git HTTP URL).
 
-Example:
-```yaml
-repository: git@github.com:example/example-artifact.git
-```
+    Example:
+    ```yaml
+    repository: git@github.com:example/example-artifact.git
+    ```
 
 - **include**: Extra files or folders to include into the artifact.
 
-Example:
-```yaml
-include: []
-```
+    Example:
+    ```yaml
+    include: []
+    ```
 
 - **author**: It will be the author used in git commits.
 
-Example:
-```yaml
-author: John Doe <passionate.developer@example.com>
-```
+    Example:
+    ```yaml
+    author: John Doe <passionate.developer@example.com>
+    ```
 
 - **branches_map**: Key value map to git push source artifact branches to different artifact branches.
 
-Example:
-```yaml
-branches_map:
-  develop:develop-build
-```
+    Example:
+    ```yaml
+    branches_map:
+      develop:develop-build
+    ```
 
 This example will make push the artifacts coming from develop source branch to the develop-build artifact branch.
 
@@ -79,31 +79,31 @@ drupal-artifact-builder git
 
 - **config**: Allow setting the configuration file. Defaults to .drupal-artifact-builder.yml
 
-```
-drupal-artifact-builder git  folder/.drupal-artifact-builder.custom.yml
-```
+    ```
+    drupal-artifact-builder git  folder/.drupal-artifact-builder.custom.yml
+    ```
 
 
 - **repository**: Selects the repository where the artifacts will be pushed.
 
-Examples:
+    Examples:
 
-For the complete command (create + git):
-```
-drupal-artifact-builder --repository git@example.com:example/example.git
-```
+    For the complete command (create + git):
+    ```
+    drupal-artifact-builder --repository git@example.com:example/example.git
+    ```
 
-For the git command:
-```
-drupal-artifact-builder git --repository git@example.com:example/example.git
-```
+    For the git command:
+    ```
+    drupal-artifact-builder git --repository git@example.com:example/example.git
+    ```
 
 
 - **include**: Allow adding more paths to the artifact.
 
-```
-drupal-artifact-builder --repository git@example.com:example/example.git --include=oauth.json,mycustomapp
-```
+    ```
+    drupal-artifact-builder --repository git@example.com:example/example.git --include=oauth.json,mycustomapp
+    ```
 
 ## Upgrade from 1.x to 2.x
 
@@ -111,38 +111,36 @@ drupal-artifact-builder --repository git@example.com:example/example.git --inclu
 
 These steps must be followed in order to upgrade to the 2.0.0 version:
 
-**1)** Copy and configure .drupal-artifact-builder.yml:
+1. Copy and configure .drupal-artifact-builder.yml:
 
-Now the default usage is using
+    ```
+    cp vendor/metadrop/drupal-artifact-builder/.drupal-artifact-builder.yml.dist .drupal-artifact-builder.yml
+    ```
 
-```
-cp vendor/metadrop/drupal-artifact-builder/.drupal-artifact-builder.yml.dist .drupal-artifact-builder.yml
-```
+2. Change --extra-paths parameters to --include
 
-**2)** Change --extra-paths parameters to --include
+    Before:
 
-Before:
+    ```bash
+    drupal-artifact-builder --extra-paths solr
+   ```
 
-```bash
-drupal-artifact-builder --extra-paths solr
-```
+   Now:
 
-Now:
+   ```bash
+   drupal-artifact-builder --include solr
+   ```
 
-```bash
-drupal-artifact-builder --include solr
-```
+3. Stop using GIT_BRANCH environment variable, not it is --branch
 
-**3)** Stop using GIT_BRANCH environment variable, not it is --branch
+   Before:
 
-Before:
+   ```bash
+   GIT_BRANCH=develop drupal-artifact-builder
+   ```
 
-```bash
-GIT_BRANCH=develop drupal-artifact-builder
-```
+   Now:
 
-Now:
-
-```bash
-drupal-artifact-builder --branch develop
-```
+   ```bash
+   drupal-artifact-builder --branch develop
+   ```
