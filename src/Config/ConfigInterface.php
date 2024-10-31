@@ -5,13 +5,21 @@ namespace DrupalArtifactBuilder\Config;
 interface ConfigInterface
 {
   /**
-   * Branch where the artifact will be created.
+   * Branch where artifact is pushed.
    *
-   * Its value will be set with the current branch.
+   * Default value: current branch.
    *
    * @var string
    */
   public function getBranch() : string;
+
+  /**
+   * Sets the branch where artifact is pushed.
+   *
+   * @param string $branch
+   *   Branch name.
+   */
+  public function setBranch(string $branch) : void;
 
   /**
    * Gets the repository where the commits will be pushed.

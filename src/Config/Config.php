@@ -10,7 +10,7 @@ use Symfony\Component\Yaml\Yaml;
 class Config implements ConfigInterface {
 
   /**
-   * Branch where the artifact will be pushed.
+   * Branch where the artifact is created from.
    *
    * @var string
    */
@@ -25,11 +25,14 @@ class Config implements ConfigInterface {
    *   Extra files or folders included into the artifact.
    * @param string|null $author
    *   Artifact commit author.
+   * @param array|null $branches_map
+   *   Map between source and target branches.
    */
   public function __construct(
     protected ?string $repository = NULL,
     protected array $include = [],
     protected ?string $author = NULL,
+    protected array $branches_map = [],
   ) {
   }
 
@@ -80,7 +83,7 @@ class Config implements ConfigInterface {
    * @var string
    */
   public function getBranch() : string {
-    return $this->branch;
+    return $this->branches_map[$this->branch] ?? $this->branch;
   }
 
   /**
@@ -110,15 +113,25 @@ class Config implements ConfigInterface {
       'author',
     ];
 
-    if (isset($configuration['repository']) && !is_string($configuration['repository'])) {
-      throw new \InvalidArgumentException(sprintf('"repository" configuration key must be a string, %s given', gettype($configuration['repository'])));
+    foreach ($string_fields as $string_field) {
+      if (isset($configuration[$string_field]) && !is_string($configuration[$string_field])) {
+        throw new \InvalidArgumentException(sprintf('"%s" configuration key must be a string, %s given', $string_field, gettype($configuration['repository'])));
+      }
     }
 
-    if (isset($configuration['include']) && !is_array($configuration['include'])) {
-      throw new \InvalidArgumentException('"include" config key must be a string, %s given!');
+    $array_fields = [
+      'include',
+      'branches_map',
+    ];
+
+    foreach ($array_fields as $array_field) {
+      if (isset($configuration[$array_field]) && !is_array($configuration[$array_field])) {
+        throw new \InvalidArgumentException('"%s" config key must be a string, %s given!', $array_field, gettype($configuration[$array_field]));
+      }
     }
 
-    return new self($configuration['repository'] ?? NULL, $configuration['include'] ?? []);
+
+    return new self($configuration['repository'] ?? NULL, $configuration['include'] ?? [], $configuration['author'] ?? NULL, $configuration['branches_map'] ?? []);
   }
 
 }

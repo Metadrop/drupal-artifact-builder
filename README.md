@@ -21,11 +21,38 @@ to have an starting point:
 cp vendor/metadrop/drupal-artifact-builder/.drupal-artifact-builder.yml.dist .drupal-artifact-builder.yml
 ```
 
-Configuration properties:
+#### Configuration properties
 
 - **repository**: Repository URL (git SSH / git HTTP URL).
-- **author**: It will be the author used in git commits.
+
+Example:
+```yaml
+repository: git@github.com:example/example-artifact.git
+```
+
 - **include**: Extra files or folders to include into the artifact.
+
+Example:
+```yaml
+include: []
+```
+
+- **author**: It will be the author used in git commits.
+
+Example:
+```yaml
+author: John Doe <passionate.developer@example.com>
+```
+
+- **branches_map**: Key value map to git push source artifact branches to different artifact branches.
+
+Example:
+```yaml
+branches_map:
+  develop:develop-build
+```
+
+This example will make push the artifacts coming from develop source branch to the develop-build artifact branch.
 
 ## Usage
 

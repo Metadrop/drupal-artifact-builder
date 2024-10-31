@@ -36,8 +36,10 @@ class DrupalArtifactBuilderGit extends BaseCommand {
     if ($input->hasOption('repository') && !empty($input->getOption('repository'))) {
       $this->config->setRepository($input->getOption('repository'));
     }
-    $this->getConfiguration()->setBranch($this->getBranch($input));
-    $this->log(sprintf('Selected %s branch', $this->getConfiguration()->getBranch()));
+    $selected_branch = $this->getBranch($input);
+    $this->getConfiguration()->setBranch($selected_branch);
+    $this->log(sprintf('Source branch: %s', $selected_branch));
+    $this->log(sprintf('Target branch: %s', $this->getConfiguration()->getBranch()));
     $this->assertArtifactExists();
 
     if ($input->hasOption('author') && !empty($input->getOption('author'))) {
