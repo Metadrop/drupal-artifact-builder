@@ -177,11 +177,15 @@ class BaseCommand extends Command implements ConfigurableInterface {
       $this->getSymlinks(),
       $this->getConfiguration()->getInclude(),
     ));
-    $files_changed = trim($this->runCommand(sprintf("git status -s %s", implode(' ', $artifact_content)))->getOutput());
-    if (strlen($files_changed > 0)) {
-      $list = implode("\n", array_map(function($item) { $parts = explode(' ', $item); return $parts[1]; }, explode("\n", $files_changed)));
-      throw new \Exception("There are changes in the repository (changed and/or untracked files), please run this artifact generation script with folder tree clean. Files changed:\n$list");
+
+    if ($this->gitCommandExist() && $this->isRootARepository()) {
+      $files_changed = trim($this->runCommand(sprintf("git status -s %s", implode(' ', $artifact_content)))->getOutput());
+      if (strlen($files_changed > 0)) {
+        $list = implode("\n", array_map(function($item) { $parts = explode(' ', $item); return $parts[1]; }, explode("\n", $files_changed)));
+        throw new \Exception("There are changes in the repository (changed and/or untracked files), please run this artifact generation script with folder tree clean. Files changed:\n$list");
+      }
     }
+
   }
 
   /**
@@ -234,6 +238,25 @@ class BaseCommand extends Command implements ConfigurableInterface {
    */
   protected function getSymlinks() {
     return ['docroot', 'web', 'public_html'];
+  }
+
+  /**
+   * Check if git command exists
+   *
+   * @return bool
+   */
+  protected function gitCommandExist() {
+    return $this->runCommand('which git')->isSuccessful();
+  }
+
+  /**
+   * Check if we are in a git repository
+   *
+   * @return bool
+   */
+  protected function isRootARepository() {
+    $command_output = $this->runCommand('git rev-parse --is-inside-work-tree || true')->getOutput();
+    return $command_output === 'true';
   }
 
 }
