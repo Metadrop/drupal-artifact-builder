@@ -178,7 +178,7 @@ class BaseCommand extends Command implements ConfigurableInterface {
       $this->getConfiguration()->getInclude(),
     ));
 
-    if ($this->gitCommandExist() && $this->isRootARepository()) {
+    if ($this->gitCommandExist() && $this->isGitRepository()) {
       $files_changed = trim($this->runCommand(sprintf("git status -s %s", implode(' ', $artifact_content)))->getOutput());
       if (strlen($files_changed > 0)) {
         $list = implode("\n", array_map(function($item) { $parts = explode(' ', $item); return $parts[1]; }, explode("\n", $files_changed)));
@@ -254,7 +254,7 @@ class BaseCommand extends Command implements ConfigurableInterface {
    *
    * @return bool
    */
-  protected function isRootARepository() {
+  protected function isGitRepository() {
     $command_output = $this->runCommand('git rev-parse --is-inside-work-tree || true')->getOutput();
     return $command_output === 'true';
   }
