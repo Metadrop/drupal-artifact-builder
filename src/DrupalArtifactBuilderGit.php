@@ -32,6 +32,10 @@ class DrupalArtifactBuilderGit extends BaseCommand {
   protected function initialize(InputInterface $input, OutputInterface $output) {
     parent::initialize($input, $output);
 
+    if (!$this->gitCommandExist()) {
+      throw new \RuntimeException("Git command not found. Git must be installed and available in the PATH variable to generate an artifact.");
+    }
+
     // Branch setup.
     if ($input->hasOption('repository') && !empty($input->getOption('repository'))) {
       $this->config->setRepository($input->getOption('repository'));
