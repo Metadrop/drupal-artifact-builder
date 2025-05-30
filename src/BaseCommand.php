@@ -8,7 +8,6 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
-use Symfony\Component\Yaml\Yaml;
 use DrupalArtifactBuilder\Config\ConfigurableInterface;
 use DrupalArtifactBuilder\Config\ConfigInterface;
 use DrupalArtifactBuilder\Config\Config;
@@ -39,6 +38,7 @@ class BaseCommand extends Command implements ConfigurableInterface {
     'PATCHES.txt',
   ];
 
+
   /**
    * Folder with the codebase.
    *
@@ -46,12 +46,17 @@ class BaseCommand extends Command implements ConfigurableInterface {
    */
   protected string $rootFolder;
 
+  /**
+   * Configuration.
+   *
+   * @var \DrupalArtifactBuilder\Config\ConfigInterface
+   */
   protected ConfigInterface $config;
 
   /**
    * Used to show messages during the artifact building.
    *
-   * @var OutputInterface
+   * @var \Symfony\Component\Console\Output\OutputInterface
    */
   protected OutputInterface $output;
 
@@ -86,14 +91,15 @@ class BaseCommand extends Command implements ConfigurableInterface {
     // Variables initialization.
     $this->output = $output;
     $this->rootFolder = getcwd();
-    if (!isset($this->config))
-    $this->setupConfig($input->getOption('config'));
+    if (!isset($this->config)) {
+      $this->setupConfig($input->getOption('config'));
+    }
 
     if ($input->hasOption('include') && !empty($input->getOption('include'))) {
       $this->getConfiguration()->setInclude(explode(', ', $input->getOption('include')));
     }
 
-    // Assert the site is working okay before starting to create the artifact
+    // Assert the site is working okay before starting to create the artifact.
     $this->assertRootLocation();
     $this->assertArtifactContentIsClean();
   }
@@ -104,10 +110,10 @@ class BaseCommand extends Command implements ConfigurableInterface {
    * @param string $command
    *   Command.
    *
-   * @return Process
+   * @return \Symfony\Component\Process\Process
    *   It can be used to obtain the command output if needed.
    *
-   * @throws ProcessFailedException
+   * @throws \Symfony\Component\Process\Exception\ProcessFailedException
    *   When the command fails.
    */
   protected function runCommand(string $command) {
@@ -122,6 +128,12 @@ class BaseCommand extends Command implements ConfigurableInterface {
     return $process;
   }
 
+  /**
+   * Setup the configuration.
+   *
+   * @param string $configuration_filepath
+   *   Path where the configuration file is located.
+   */
   protected function setupConfig(string $configuration_filepath) {
     $this->log(sprintf('Selected configuration file: %s', $configuration_filepath));
 
@@ -148,7 +160,10 @@ class BaseCommand extends Command implements ConfigurableInterface {
   }
 
   /**
-   * Assert the script is launched inside a codebase and not in an arbitrary folder.
+   * Ensure script is launched inside a codebase and not in an arbitrary folder.
+   *
+   * @throws \RuntimeException
+   *   When the script is not launched inside a codebase.
    */
   protected function assertRootLocation() {
     if (!file_exists('docroot') && !file_exists('web')) {
@@ -181,7 +196,10 @@ class BaseCommand extends Command implements ConfigurableInterface {
     if ($this->gitCommandExist() && $this->isGitRepository()) {
       $files_changed = trim($this->runCommand(sprintf("git status -s %s", implode(' ', $artifact_content)))->getOutput());
       if (strlen($files_changed > 0)) {
-        $list = implode("\n", array_map(function($item) { $parts = explode(' ', $item); return $parts[1]; }, explode("\n", $files_changed)));
+        $list = implode("\n", array_map(function ($item) {
+          $parts = explode(' ', $item);
+          return $parts[1];
+        }, explode("\n", $files_changed)));
         throw new \Exception("There are changes in the repository (changed and/or untracked files), please run this artifact generation script with folder tree clean. Files changed:\n$list");
       }
     }
@@ -198,6 +216,7 @@ class BaseCommand extends Command implements ConfigurableInterface {
       throw new \Exception('Repository must be defined to continue!');
     }
   }
+
   /**
    * Calculate where is the docroot folder.
    *
@@ -241,7 +260,7 @@ class BaseCommand extends Command implements ConfigurableInterface {
   }
 
   /**
-   * Check if git command exists
+   * Check if git command exists.
    *
    * @return bool
    */
@@ -250,7 +269,7 @@ class BaseCommand extends Command implements ConfigurableInterface {
   }
 
   /**
-   * Check if we are in a git repository
+   * Check if we are in a git repository.
    *
    * @return bool
    */

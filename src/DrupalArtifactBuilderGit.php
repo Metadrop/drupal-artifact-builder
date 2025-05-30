@@ -2,13 +2,9 @@
 
 namespace DrupalArtifactBuilder;
 
-use PHP_CodeSniffer\Tests\Core\File\testFECNClassThatImplementsAndExtends;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Process\Exception\ProcessFailedException;
-use Symfony\Component\Process\Process;
 
 /**
  * Synchronize generated artifact changes into git.
@@ -16,6 +12,15 @@ use Symfony\Component\Process\Process;
 class DrupalArtifactBuilderGit extends BaseCommand {
 
   protected static $defaultName = 'git';
+
+  const GIT_IGNORED_REQUIRED_FILES = [
+    'web/index.php',
+    'web/robots.txt',
+    'web/autoload.php',
+    'web/update.php',
+    'web/web.config',
+  ];
+
   /**
    * {@inheritdoc}
    */
@@ -135,7 +140,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
    */
   protected function gitCommitPush() {
     chdir(self::ARTIFACT_FOLDER);
-    $this->runCommand('git add .');
+    $this->gitAddFiles();
     // Check if there are changes to commit.
     $diff = $this->runCommand('git diff --cached --name-only');
     $diff_output = trim($diff->getOutput());
@@ -150,6 +155,20 @@ class DrupalArtifactBuilderGit extends BaseCommand {
       $this->log('No changes to commit!');
     }
     chdir($this->rootFolder);
+  }
+
+  /**
+   * Add all the files to the git repository.
+   */
+  protected function gitAddFiles() {
+    $this->runCommand('git add .');
+
+    foreach (array_unique(array_merge(self::GIT_IGNORED_REQUIRED_FILES, $this->getConfiguration()->getInclude())) as $file) {
+      if (file_exists($file)) {
+        $this->runCommand(sprintf('git add -f %s', $file));
+      }
+    }
+
   }
 
   /**
