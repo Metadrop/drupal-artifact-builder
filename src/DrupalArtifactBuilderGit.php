@@ -12,6 +12,15 @@ use Symfony\Component\Console\Output\OutputInterface;
 class DrupalArtifactBuilderGit extends BaseCommand {
 
   protected static $defaultName = 'git';
+
+  const GIT_IGNORED_REQUIRED_FILES = [
+    'web/index.php',
+    'web/robots.txt',
+    'web/autoload.php',
+    'web/update.php',
+    'web/web.config',
+  ];
+
   /**
    * {@inheritdoc}
    */
@@ -131,7 +140,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
    */
   protected function gitCommitPush() {
     chdir(self::ARTIFACT_FOLDER);
-    $this->runCommand('git add .');
+    $this->gitAddFiles();
     // Check if there are changes to commit.
     $diff = $this->runCommand('git diff --cached --name-only');
     $diff_output = trim($diff->getOutput());
@@ -146,6 +155,21 @@ class DrupalArtifactBuilderGit extends BaseCommand {
       $this->log('No changes to commit!');
     }
     chdir($this->rootFolder);
+  }
+
+  /**
+   * Add all the files to the git repository.
+   */
+  protected function gitAddFiles() {
+    $this->runCommand('git add .');
+
+    foreach (self::GIT_IGNORED_REQUIRED_FILES as $file) {
+      $this->runCommand(sprintf('git add -f %s', $file));
+    }
+
+    foreach ($this->getConfiguration()->getInclude() as $path) {
+      $this->runCommand(sprintf('git add -f %s', $path));
+    }
   }
 
   /**
