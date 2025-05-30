@@ -163,13 +163,12 @@ class DrupalArtifactBuilderGit extends BaseCommand {
   protected function gitAddFiles() {
     $this->runCommand('git add .');
 
-    foreach (self::GIT_IGNORED_REQUIRED_FILES as $file) {
-      $this->runCommand(sprintf('git add -f %s', $file));
+    foreach (array_unique(array_merge(self::GIT_IGNORED_REQUIRED_FILES, $this->getConfiguration()->getInclude())) as $file) {
+      if (file_exists($file)) {
+        $this->runCommand(sprintf('git add -f %s', $file));
+      }
     }
 
-    foreach ($this->getConfiguration()->getInclude() as $path) {
-      $this->runCommand(sprintf('git add -f %s', $path));
-    }
   }
 
   /**
