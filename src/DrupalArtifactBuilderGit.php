@@ -19,6 +19,8 @@ class DrupalArtifactBuilderGit extends BaseCommand {
     'web/autoload.php',
     'web/update.php',
     'web/web.config',
+    'web/.htaccess',
+    'web/.ht.router.php',
   ];
 
   /**
