@@ -13,14 +13,14 @@ class DrupalArtifactBuilderGit extends BaseCommand {
 
   protected static $defaultName = 'git';
 
-  const GIT_IGNORED_REQUIRED_FILES = [
-    'web/index.php',
-    'web/robots.txt',
-    'web/autoload.php',
-    'web/update.php',
-    'web/web.config',
-    'web/.htaccess',
-    'web/.ht.router.php',
+  const GIT_IGNORED_REQUIRED_WEB_FILES = [
+    'index.php',
+    'robots.txt',
+    'autoload.php',
+    'update.php',
+    'web.config',
+    '.htaccess',
+    '.ht.router.php',
   ];
 
   /**
@@ -165,12 +165,15 @@ class DrupalArtifactBuilderGit extends BaseCommand {
   protected function gitAddFiles() {
     $this->runCommand('git add .');
 
-    foreach (array_unique(array_merge(self::GIT_IGNORED_REQUIRED_FILES, $this->getConfiguration()->getInclude())) as $file) {
-      if (file_exists($file)) {
+    $ignored_web_files = array_map(function (string $file) {
+      return sprintf('%s/%s', $this->calculateDocrootFolder(), $file);
+    }, self::GIT_IGNORED_REQUIRED_WEB_FILES);
+
+    foreach (array_unique(array_merge($ignored_web_files, $this->getConfiguration()->getInclude())) as $file) {
+      if (file_exists($file) && !is_link($file)) {
         $this->runCommand(sprintf('git add -f %s', $file));
       }
     }
-
   }
 
   /**
