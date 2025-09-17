@@ -36,9 +36,6 @@ class BaseCommand extends Command implements ConfigurableInterface {
     'UPDATE.txt',
     'USAGE.txt',
     'PATCHES.txt',
-    'web/README.md',
-    'docroot/README.md',
-    'vendor/*/*.md',
     '.csslintrc',
     '.eslintignore',
     '.eslintrc.json'

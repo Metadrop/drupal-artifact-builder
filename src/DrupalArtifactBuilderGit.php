@@ -127,6 +127,11 @@ class DrupalArtifactBuilderGit extends BaseCommand {
       $this->cleanFileFromArtifact($file);
     }
 
+    // Clean markdown files except from drupal contrib modules / themes.
+    // Some modules uses them for hook_help (s.e.: https://drupal.org/markdown).
+    $this->runCommand(sprintf('find . -name "*.md" -maxdepth 2 -exec rm -fr {} +'));
+    $this->runCommand(sprintf('find vendor -name "*.md" -exec rm -fr {} +'));
+
     // Clean .git folders on contrib modules to avoid git detect them as submodules.
     $this->runCommand(sprintf('find %s/modules/contrib -name ".git" -exec rm -fr {} +', $this->calculateDocrootFolder()));
     $this->runCommand(sprintf('find %s/themes/contrib -name ".git" -exec rm -fr {} +', $this->calculateDocrootFolder()));
