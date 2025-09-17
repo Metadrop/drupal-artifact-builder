@@ -27,9 +27,10 @@ interface ConfigInterface
   /**
    * Gets the repository where the commits will be pushed.
    *
-   * @return string
+   * @return string|null
+   *   Repository name, if defined.
    */
-  public function getRepository() : string;
+  public function getRepository() : ?string;
 
   /**
    * Sets the repository.

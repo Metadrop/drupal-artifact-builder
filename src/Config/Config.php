@@ -53,7 +53,7 @@ class Config implements ConfigInterface {
   /**
    * {@inheritdoc}
    */
-  public function getRepository() : string {
+  public function getRepository() : ?string {
     return $this->repository;
   }
 
