@@ -1,6 +1,6 @@
 # Drupal artifact builder
 
-Helps generating artifacts for Drupal
+Helps generating artifacts for Drupal by wrapping all code into an artifact, and pushing it to the artifact remote repository.
 
 ## Installation
 
@@ -10,7 +10,7 @@ composer require metadrop/drupal-artifact-builder
 
 ### Configuration
 
-Drupal artifact builder allow using a configuraiton file to create the artifact.
+Drupal artifact builder allow using a configuration file to create the artifact.
 Artifacts usually are executed using always the same parameters. So, a configuration
 file saves time adding those parameters every time the command is run.
 
@@ -57,6 +57,8 @@ cp vendor/metadrop/drupal-artifact-builder/.drupal-artifact-builder.yml.dist .dr
 This example will make push the artifacts coming from develop source branch to the develop-build artifact branch.
 
 ## Usage
+
+**Important**: Please note that Drupal Artifact Builder does not download Composer libraries or compile CSS assets. These tasks must be completed prior to running the command.
 
 Builds the artifact and push the changes to git:
 
