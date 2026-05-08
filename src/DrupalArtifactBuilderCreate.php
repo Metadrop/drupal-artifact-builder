@@ -146,6 +146,20 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
 
     $patterns = $this->getBaseGitIgnorePatterns($docroot);
 
+    $whitelist = array_merge(
+      $this->getRequiredFiles(),
+      $this->getSymlinks(),
+      array_map(fn($p) => ltrim($p, '/'), $this->getConfiguration()->getInclude()),
+      ['.gitignore']
+    );
+    $artifactRootEntries = array_filter(
+      scandir($artifactPath),
+      fn($entry) => !in_array($entry, ['.', '..', '.git'])
+    );
+    foreach (array_diff($artifactRootEntries, $whitelist) as $extra) {
+      $patterns[] = '/' . $extra;
+    }
+
     foreach ($this->getConfiguration()->getExclude() as $excludePath) {
       $patterns[] = $excludePath;
     }

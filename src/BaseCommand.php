@@ -239,6 +239,33 @@ class BaseCommand extends Command implements ConfigurableInterface {
   }
 
   /**
+   * Get the file or folders that are required to add to the artifact.
+   *
+   * @return string[]
+   *   Relative path.
+   */
+  protected function getRequiredFiles() : array {
+    return [
+      'config',
+      'drush',
+      'vendor',
+      'scripts',
+      'composer.json',
+      'composer.lock',
+    ];
+  }
+
+  /**
+   * Get the symlinks that may be commited to the artifact.
+   *
+   * @return string[]
+   *   Relative path of the symlinks.
+   */
+  protected function getSymlinks() : array {
+    return ['docroot', 'web', 'public_html'];
+  }
+
+  /**
    * Check if git command exists.
    *
    * @return bool
