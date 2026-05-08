@@ -33,6 +33,9 @@ class Config implements ConfigInterface {
     protected array $include = [],
     protected ?string $author = NULL,
     protected array $branches_map = [],
+    protected array $exclude = [],
+    protected array $commands = [],
+    protected ?string $artifact_folder = NULL,
   ) {
   }
 
@@ -53,7 +56,7 @@ class Config implements ConfigInterface {
   /**
    * {@inheritdoc}
    */
-  public function getRepository() : string {
+  public function getRepository() : ?string {
     return $this->repository;
   }
 
@@ -97,6 +100,48 @@ class Config implements ConfigInterface {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function getExclude() : array {
+    return $this->exclude;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setExclude(array $exclude) : void {
+    $this->exclude = $exclude;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCommands() : array {
+    return $this->commands;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setCommands(array $commands) : void {
+    $this->commands = $commands;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getArtifactFolder() : ?string {
+    return $this->artifact_folder;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setArtifactFolder(string $folder) : void {
+    $this->artifact_folder = $folder;
+  }
+
+  /**
    * Creates a configuration isntance given a YAML configuration file.
    *
    * @param string $config_file
@@ -111,17 +156,20 @@ class Config implements ConfigInterface {
     $string_fields = [
       'repository',
       'author',
+      'artifact_folder',
     ];
 
     foreach ($string_fields as $string_field) {
       if (isset($configuration[$string_field]) && !is_string($configuration[$string_field])) {
-        throw new \InvalidArgumentException(sprintf('"%s" configuration key must be a string, %s given', $string_field, gettype($configuration['repository'])));
+        throw new \InvalidArgumentException(sprintf('"%s" configuration key must be a string, %s given', $string_field, gettype($configuration[$string_field])));
       }
     }
 
     $array_fields = [
       'include',
       'branches_map',
+      'exclude',
+      'commands',
     ];
 
     foreach ($array_fields as $array_field) {
@@ -130,8 +178,15 @@ class Config implements ConfigInterface {
       }
     }
 
-
-    return new self($configuration['repository'] ?? NULL, $configuration['include'] ?? [], $configuration['author'] ?? NULL, $configuration['branches_map'] ?? []);
+    return new self(
+      $configuration['repository'] ?? NULL,
+      $configuration['include'] ?? [],
+      $configuration['author'] ?? NULL,
+      $configuration['branches_map'] ?? [],
+      $configuration['exclude'] ?? [],
+      $configuration['commands'] ?? [],
+      $configuration['artifact_folder'] ?? NULL,
+    );
   }
 
 }

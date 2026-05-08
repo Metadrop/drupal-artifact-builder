@@ -2,13 +2,10 @@
 
 namespace DrupalArtifactBuilder;
 
-use PHP_CodeSniffer\Tests\Core\File\testFECNClassThatImplementsAndExtends;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Process\Exception\ProcessFailedException;
-use Symfony\Component\Process\Process;
 
 /**
  * Creates and artifact and pushes the changes to a git repository
@@ -18,51 +15,42 @@ class DrupalArtifactBuilderBuild extends BaseCommand {
   /**
    * {@inheritdoc}
    */
-  protected function configure() {
+  protected function configure(): void {
     parent::configure();
-    $this->setDescription('Creates an artifact and push the changes to git.');
+    $this->setDescription('Creates an artifact and push the changes to git (or packages as tar.gz if no repository is configured).');
+    $this->addOption('author', 'a', InputOption::VALUE_REQUIRED, 'Git commit author');
   }
 
   /**
    * {@inheritdoc}
    */
-  protected function initialize(InputInterface $input, OutputInterface $output) {
-    parent::initialize($input, $output);
-    $this->assertRepository();
-  }
-
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function execute(InputInterface $input, OutputInterface $output) : int {
+  protected function execute(InputInterface $input, OutputInterface $output): int {
     $this->log('Generating artifact');
     $this->runApplicationCommand('create', $input, $output);
 
-    $this->log('Adding changes to git');
-    $this->runApplicationCommand('git', $input, $output);
+    if (!empty($this->getConfiguration()->getRepository())) {
+      $this->log('Adding changes to git');
+      $this->runApplicationCommand('git', $input, $output);
+    }
+    else {
+      $this->log('No repository configured - packaging artifact as tar.gz');
+      $this->runApplicationCommand('package', $input, $output);
+    }
 
-    $this->log(sprintf('Artifact generation finished successfully in the %s folder', self::ARTIFACT_FOLDER));
+    $this->log(sprintf('Artifact generation finished successfully in the %s folder', $this->getArtifactFolder()));
     $this->log("Take into account that the operation removed development packages so you may want to run 'composer install'");
-    $this->log("Please, complete the process with:\n  - Adding a tag (if needed)\n  - Merging with master (if this is a prod release)\n  - git push\n");
 
-    return 0;
+    return Command::SUCCESS;
   }
 
   /**
    * Run an application command.
    *
-   * Used to create and push to git the artifact using the existing coomands
-   * from the own repository.
-   *
-   * If the command mentioned has configuration, it will be inherit.
+   * If the command has configuration, it will be inherited.
    *
    * @param string $command_name
-   *   Command name.
    * @param InputInterface $input
-   *   Input.
    * @param OutputInterface $output
-   *   Output.
    */
   protected function runApplicationCommand(string $command_name, InputInterface $input, OutputInterface $output) : void {
     $command = $this->getApplication()->find($command_name);

@@ -27,9 +27,9 @@ interface ConfigInterface
   /**
    * Gets the repository where the commits will be pushed.
    *
-   * @return string
+   * @return string|null
    */
-  public function getRepository() : string;
+  public function getRepository() : ?string;
 
   /**
    * Sets the repository.
@@ -70,5 +70,47 @@ interface ConfigInterface
    *   Author in git commit format: Name<email>
    */
   public function setAuthor(string $author) : void;
+
+  /**
+   * Extra paths to exclude from the artifact.
+   *
+   * @return array
+   */
+  public function getExclude() : array;
+
+  /**
+   * Sets extra paths to exclude.
+   *
+   * @param array $exclude
+   */
+  public function setExclude(array $exclude) : void;
+
+  /**
+   * Commands to run inside the artifact folder before packaging.
+   *
+   * @return array
+   */
+  public function getCommands() : array;
+
+  /**
+   * Sets pre-artifact commands.
+   *
+   * @param array $commands
+   */
+  public function setCommands(array $commands) : void;
+
+  /**
+   * Gets the artifact destination folder name.
+   *
+   * @return string|null
+   */
+  public function getArtifactFolder() : ?string;
+
+  /**
+   * Sets the artifact destination folder name.
+   *
+   * @param string $folder
+   */
+  public function setArtifactFolder(string $folder) : void;
 
 }

@@ -4,10 +4,7 @@ namespace DrupalArtifactBuilder;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Process\Exception\ProcessFailedException;
-use Symfony\Component\Process\Process;
 
 /**
  * Creates an artifact from a site already that is already setup.
@@ -17,79 +14,224 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
   /**
    * {@inheritdoc}
    */
-  protected function configure() {
+  protected function configure(): void {
     parent::configure();
-    $this->setDescription('Creates an artifact and push the changes to git.');
+    $this->setDescription('Creates an artifact from the current project.');
   }
 
   /**
    * {@inheritdoc}
    */
-  protected function execute(InputInterface $input, OutputInterface $output) : int {
-    $this->generateArtifact();
-    return 0;
+  protected function initialize(InputInterface $input, OutputInterface $output): void {
+    parent::initialize($input, $output);
+    $branch = $this->getBranch($input);
+    $this->getConfiguration()->setBranch($branch);
+    $this->log(sprintf('Target artifact branch: %s', $this->getConfiguration()->getBranch()));
   }
 
   /**
-   * Generates the artifact
+   * {@inheritdoc}
+   */
+  protected function execute(InputInterface $input, OutputInterface $output): int {
+    $this->generateArtifact();
+    return Command::SUCCESS;
+  }
+
+  /**
+   * Generates the artifact.
    *
    * @throws \Exception
    */
   protected function generateArtifact() {
-    // Create the folder with the artifact.
-    $this->createArtifactFolder();
     $this->assertArtifactContentIsClean();
-
-    $this->log('Cleaning previous artifact');
-    $this->log('##########################');
-
-    // Cleanup artifact content to start from scratch.
-    try {
-      $this->runCommand(sprintf('rm -rf %s/*', static::ARTIFACT_FOLDER));
-    }
-    catch (\Exception $e) {
-      throw new \RuntimeException('Removing of dependencies failed');
-    }
-
-    // Copy all needed files.
-    $this->log('Starting source copy to artifact repository folder');
-    $this->log('##################################################');
-    foreach ($this->getRequiredFiles() as $folder) {
-      $this->copy($folder);
-    }
-
-    foreach ($this->getSymlinks() as $file) {
-      if (file_exists($file)) {
-        $this->copy($file);
-      }
-    }
-
-    foreach ($this->getConfiguration()->getInclude() as $path) {
-      $this->copy($path);
-    }
-
+    $this->createArtifactFolder();
+    $this->cleanArtifactFolder();
+    $this->checkoutBranchInArtifact();
+    $this->generateHashFile();
+    $this->removeAllGitFolders();
+    $this->removeGitIgnore();
+    $this->runPreArtifactCommands();
+    $this->generateGitIgnore();
+    $this->cleanIgnoredFilesFromArtifact();
     $this->log('Artifact generated successfully');
   }
 
   /**
-   * Create the folder that will contains the artifact.
+   * Creates the artifact folder if it does not exist.
    */
   protected function createArtifactFolder() {
     $this->log('Creating artifact folder');
-    $this->runCommand(sprintf('mkdir -p %s', static::ARTIFACT_FOLDER));
+    $this->runCommand(sprintf('mkdir -p %s', $this->getArtifactFolder()));
   }
 
   /**
-   * Copy file or folder from codebase to artifact.
-   *
-   * @param string $path
-   *   File or folder path from codebase.
+   * Removes all content from the artifact folder.
    */
-  protected function copy(string $path) {
-    $this->log(sprintf('Copying %s...', $path));
+  protected function cleanArtifactFolder() {
+    $this->log('Cleaning previous artifact content');
+    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $this->runCommand(sprintf('rm -rf %s', $artifactPath));
+    $this->runCommand(sprintf('mkdir -p %s', $artifactPath));
+  }
 
-    $this->runCommand(sprintf('cp -a "%s" "%s/%s"', $path, self::ARTIFACT_FOLDER, $path));
-    $this->log('Copy successful');
+  /**
+   * Copies project .git into the artifact folder and checks out the target branch.
+   *
+   * Git checkout populates all files — no manual file copying needed.
+   */
+  protected function checkoutBranchInArtifact() {
+    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $branch = $this->getConfiguration()->getBranch();
+
+    $this->log(sprintf('Checking out branch "%s" into artifact folder', $branch));
+
+    $this->runCommand(sprintf('cp -r %s/.git %s/.git', $this->rootFolder, $artifactPath));
+    $this->runCommandInFolder(sprintf('git checkout -f %s', escapeshellarg($branch)), $artifactPath);
+
+    if (file_exists($artifactPath . '/.gitmodules')) {
+      $this->log('Initializing git submodules');
+      $this->runCommandInFolder('git submodule update --init', $artifactPath);
+    }
+  }
+
+  /**
+   * Writes hash.txt to docroot using the original repo commit hash.
+   *
+   * Must run before .git is removed from the artifact folder.
+   */
+  protected function generateHashFile() {
+    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $hash = trim($this->runCommand('git rev-parse HEAD')->getOutput());
+    file_put_contents($artifactPath . '/' . $this->calculateDocrootFolder() . '/hash.txt', $hash . PHP_EOL);
+    $this->log(sprintf('Generated hash.txt: %s', $hash));
+  }
+
+  /**
+   * Removes all .git folders from the artifact (including top-level and nested).
+   */
+  protected function removeAllGitFolders() {
+    $this->log('Removing .git folders from artifact');
+    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $this->runCommandInFolder('find . -name ".git" -exec rm -rf {} +', $artifactPath);
+  }
+
+  /**
+   * Removes the project .gitignore from the artifact.
+   */
+  protected function removeGitIgnore() {
+    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $this->runCommand(sprintf('rm -f %s/.gitignore', $artifactPath));
+  }
+
+  /**
+   * Runs configured pre-artifact commands inside the artifact folder.
+   */
+  protected function runPreArtifactCommands() {
+    $commands = $this->getConfiguration()->getCommands();
+    if (empty($commands)) {
+      return;
+    }
+    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    foreach ($commands as $command) {
+      $this->log(sprintf('Running pre-artifact command: %s', $command));
+      $this->runCommandInFolder($command, $artifactPath);
+    }
+  }
+
+  /**
+   * Generates the artifact .gitignore with base patterns plus include/exclude config.
+   */
+  protected function generateGitIgnore() {
+    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $docroot = $this->calculateDocrootFolder();
+
+    $patterns = $this->getBaseGitIgnorePatterns($docroot);
+
+    foreach ($this->getConfiguration()->getExclude() as $excludePath) {
+      $patterns[] = $excludePath;
+    }
+
+    foreach ($this->getConfiguration()->getInclude() as $includePath) {
+      $normalizedPath = '/' . ltrim($includePath, '/');
+      if (is_file($artifactPath . '/' . ltrim($includePath, '/'))) {
+        $patterns[] = '!' . $normalizedPath;
+      }
+      else {
+        $patterns = array_values(array_filter($patterns, function ($pattern) use ($normalizedPath) {
+          return $pattern !== $normalizedPath && $pattern !== rtrim($normalizedPath, '/') . '/';
+        }));
+      }
+    }
+
+    file_put_contents($artifactPath . '/.gitignore', implode("\n", $patterns) . "\n");
+    $this->log('Generated artifact .gitignore');
+  }
+
+  /**
+   * Returns the base .gitignore pattern list for the artifact.
+   *
+   * @param string $docroot
+   *
+   * @return string[]
+   */
+  protected function getBaseGitIgnorePatterns(string $docroot) : array {
+    return [
+      '# Ignore sensitive information.',
+      "/$docroot/sites/*/settings.local.php",
+      '# Ignore local drush settings',
+      "/$docroot/sites/*/local.drush.yml",
+      '# Ignore paths that contain user-generated content.',
+      "/$docroot/sites/*/files",
+      '/private-files/*',
+      '# OS X files.',
+      '.DS_STORE',
+      '.Ds_Store',
+      '.DS_Store',
+      '# Linux files.',
+      '.directory',
+      '# IDE related directories.',
+      '/nbproject/private/',
+      '.idea',
+      '# Database and compressed files.',
+      '*.mysql',
+      '*.sql',
+      '*.gz',
+      '*.zip',
+      '*.rar',
+      '*.7z',
+      '# NPM.',
+      'node_modules/',
+      '.sass-cache',
+      '.cache',
+      '# Test related Reports.',
+      '/reports/behat/errors/*',
+      '/reports/behat/junit/*',
+      '/reports/codereview/*',
+      "/$docroot/sites/default/settings.local.unmanaged.php",
+      '# BackstopJS',
+      '/tests/backstopjs/backstop_data/html_report',
+      '/tests/backstopjs/backstop_data/bitmaps_test',
+      '# Temporary files',
+      '/tmp/*',
+      '# Ignore docker-compose env specific settings.',
+      '/docker-compose.override.yml',
+      '# Ensure .gitkeep files are commited so folder structure get respected.',
+      '!.gitkeep',
+      '# Ignore editor config files.',
+      '/.editorconfig',
+      '/.gitattributes',
+    ];
+  }
+
+  /**
+   * Uses a throwaway git repo to run git clean -fdX, removing ignored files.
+   */
+  protected function cleanIgnoredFilesFromArtifact() {
+    $this->log('Removing ignored files from artifact using git clean');
+    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $this->runCommandInFolder('git init', $artifactPath);
+    $this->runCommandInFolder('git clean -fdX', $artifactPath);
+    $this->runCommand(sprintf('rm -rf %s/.git', $artifactPath));
   }
 
 }

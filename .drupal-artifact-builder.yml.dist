@@ -1,22 +1,49 @@
 # repository
 # Repository URL (git SSH / git HTTP URL).
-repository: git@github.com:example/example-artifact.git
+# If omitted, the artifact will be packaged as artifact.tar.gz instead.
+# repository: git@github.com:example/example-artifact.git
+
+# artifact_folder
+# Destination folder name for the artifact (default: deploy-artifact).
+# artifact_folder: deploy-artifact
 
 # include
-# List of extra files or folders to include into the artifact.
+# List of extra files or folders to include in the artifact.
+# Directories: removes any .gitignore exclusion for that path.
+# Specific files: adds a negation pattern (!/path/to/file) to .gitignore.
 include: []
 
-# Example of include with files:
+# Example:
 # include:
-#   - solr
-#   - oauth
+#   - /solr           # entire folder included
+#   - /solr/foo.txt   # specific file included
+
+# exclude
+# Additional paths to exclude from the artifact.
+# These are added as patterns to the generated .gitignore before git clean runs.
+exclude: []
+
+# Example:
+# exclude:
+#   - /private-files
+#   - /tests
+
+# commands
+# Commands to run inside the artifact folder before packaging.
+# Useful for composer install --no-dev, npm build, etc.
+commands: []
+
+# Example:
+# commands:
+#   - composer install --no-dev --optimize-autoloader
+#   - npm ci --production
 
 # author
 # It will be the author used in git commits.
 # author: John Doe <passionate.developer@example.com>
 
-# branch
-# Allow a source branch to be pushed to a specific target branch.
-# Use it only if you need push branches with a different branch name than the source.
+# branches_map
+# Map source branch names to artifact branch names.
 # branches_map:
-#  develop:develop-build
+#   develop: develop-build
+#   main: main-build
