@@ -35,7 +35,7 @@ class Config implements ConfigInterface {
     protected array $branches_map = [],
     protected array $exclude = [],
     protected array $commands = [],
-    protected ?string $artifact_folder = NULL,
+    protected string $artifact_folder = self::DEFAULT_ARTIFACT_FOLDER,
   ) {
   }
 
@@ -130,7 +130,7 @@ class Config implements ConfigInterface {
   /**
    * {@inheritdoc}
    */
-  public function getArtifactFolder() : ?string {
+  public function getArtifactFolder() : string {
     return $this->artifact_folder;
   }
 
@@ -185,7 +185,7 @@ class Config implements ConfigInterface {
       $configuration['branches_map'] ?? [],
       $configuration['exclude'] ?? [],
       $configuration['commands'] ?? [],
-      $configuration['artifact_folder'] ?? NULL,
+      $configuration['artifact_folder'] ?? self::DEFAULT_ARTIFACT_FOLDER,
     );
   }
 

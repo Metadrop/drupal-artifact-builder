@@ -19,8 +19,6 @@ class BaseCommand extends Command implements ConfigurableInterface {
 
   protected static $defaultName = 'build';
 
-  const ARTIFACT_FOLDER = 'deploy-artifact';
-
   const ARTIFACT_REPOSITORY_FOLDER = 'deploy-artifact-repository';
 
   /**
@@ -53,7 +51,7 @@ class BaseCommand extends Command implements ConfigurableInterface {
     $this->addOption('include', 'i', InputOption::VALUE_OPTIONAL, 'Separated by commas list of files or folders that must be additionally included into the artifact.');
     $this->addOption('repository', 'repo', InputOption::VALUE_OPTIONAL, 'Git repository URL / SSH');
     $this->addOption('branch', 'b', InputOption::VALUE_REQUIRED, 'Branch to checkout for the artifact.');
-    $this->addOption('artifact-folder', NULL, InputOption::VALUE_REQUIRED, 'Destination folder for the artifact.', static::ARTIFACT_FOLDER);
+    $this->addOption('artifact-folder', NULL, InputOption::VALUE_REQUIRED, 'Destination folder for the artifact.', ConfigInterface::DEFAULT_ARTIFACT_FOLDER);
   }
 
   /**
@@ -84,7 +82,7 @@ class BaseCommand extends Command implements ConfigurableInterface {
       $this->getConfiguration()->setInclude(explode(', ', $input->getOption('include')));
     }
 
-    if ($input->hasOption('artifact-folder') && $input->getOption('artifact-folder') !== static::ARTIFACT_FOLDER) {
+    if ($input->hasOption('artifact-folder') && $input->getOption('artifact-folder') !== ConfigInterface::DEFAULT_ARTIFACT_FOLDER) {
       $this->getConfiguration()->setArtifactFolder($input->getOption('artifact-folder'));
     }
 
@@ -98,7 +96,7 @@ class BaseCommand extends Command implements ConfigurableInterface {
    * @return string
    */
   protected function getArtifactFolder() : string {
-    return $this->getConfiguration()->getArtifactFolder() ?? static::ARTIFACT_FOLDER;
+    return $this->getConfiguration()->getArtifactFolder();
   }
 
   /**

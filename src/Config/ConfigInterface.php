@@ -7,6 +7,8 @@ interface ConfigInterface
 
   const DEFAULT_COMMIT_AUTHOR = 'Drupal <drupal@artifact-builder>';
 
+  const DEFAULT_ARTIFACT_FOLDER = 'deploy-artifact';
+
   /**
    * Branch where artifact is pushed.
    *
@@ -105,7 +107,7 @@ interface ConfigInterface
    *
    * @return string|null
    */
-  public function getArtifactFolder() : ?string;
+  public function getArtifactFolder() : string;
 
   /**
    * Sets the artifact destination folder name.
