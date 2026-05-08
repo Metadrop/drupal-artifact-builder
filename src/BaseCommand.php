@@ -8,7 +8,6 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
-use Symfony\Component\Yaml\Yaml;
 use DrupalArtifactBuilder\Config\ConfigurableInterface;
 use DrupalArtifactBuilder\Config\ConfigInterface;
 use DrupalArtifactBuilder\Config\Config;
@@ -31,12 +30,17 @@ class BaseCommand extends Command implements ConfigurableInterface {
    */
   protected string $rootFolder;
 
+  /**
+   * Configuration.
+   *
+   * @var \DrupalArtifactBuilder\Config\ConfigInterface
+   */
   protected ConfigInterface $config;
 
   /**
    * Used to show messages during the artifact building.
    *
-   * @var OutputInterface
+   * @var \Symfony\Component\Console\Output\OutputInterface
    */
   protected OutputInterface $output;
 
@@ -84,6 +88,7 @@ class BaseCommand extends Command implements ConfigurableInterface {
       $this->getConfiguration()->setArtifactFolder($input->getOption('artifact-folder'));
     }
 
+    // Assert the site is working okay before starting to create the artifact.
     $this->assertRootLocation();
   }
 
@@ -101,9 +106,11 @@ class BaseCommand extends Command implements ConfigurableInterface {
    *
    * @param string $command
    *
-   * @return Process
+   * @return \Symfony\Component\Process\Process
+   *   It can be used to obtain the command output if needed.
    *
-   * @throws ProcessFailedException
+   * @throws \Symfony\Component\Process\Exception\ProcessFailedException
+   *   When the command fails.
    */
   protected function runCommand(string $command) : Process {
     $this->log(sprintf('Running shell command: «%s»', $command));
@@ -140,6 +147,12 @@ class BaseCommand extends Command implements ConfigurableInterface {
     return $process;
   }
 
+  /**
+   * Setup the configuration.
+   *
+   * @param string $configuration_filepath
+   *   Path where the configuration file is located.
+   */
   protected function setupConfig(string $configuration_filepath) {
     $this->log(sprintf('Selected configuration file: %s', $configuration_filepath));
 
@@ -164,7 +177,10 @@ class BaseCommand extends Command implements ConfigurableInterface {
   }
 
   /**
-   * Assert the script is launched inside a codebase and not in an arbitrary folder.
+   * Ensure script is launched inside a codebase and not in an arbitrary folder.
+   *
+   * @throws \RuntimeException
+   *   When the script is not launched inside a codebase.
    */
   protected function assertRootLocation() {
     if (!file_exists('docroot') && !file_exists('web')) {
@@ -188,6 +204,7 @@ class BaseCommand extends Command implements ConfigurableInterface {
     if (!empty($files_changed)) {
       throw new \Exception("There are uncommitted changes. Commit or stash before generating the artifact.\n" . $files_changed);
     }
+
   }
 
   /**
@@ -234,6 +251,25 @@ class BaseCommand extends Command implements ConfigurableInterface {
     }
 
     throw new \RuntimeException("Could not detect a branch. Either you didn't set --branch option or you are in detached mode");
+  }
+
+  /**
+   * Check if git command exists.
+   *
+   * @return bool
+   */
+  protected function gitCommandExist() {
+    return $this->runCommand('which git')->isSuccessful();
+  }
+
+  /**
+   * Check if we are in a git repository.
+   *
+   * @return bool
+   */
+  protected function isGitRepository() {
+    $command_output = $this->runCommand('git rev-parse --is-inside-work-tree || true')->getOutput();
+    return $command_output === 'true';
   }
 
 }
