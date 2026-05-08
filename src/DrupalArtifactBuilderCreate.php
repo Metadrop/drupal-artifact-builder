@@ -47,9 +47,9 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
     $this->cleanArtifactFolder();
     $this->checkoutBranchInArtifact();
     $this->generateHashFile();
-    $this->removeGitIgnore();
     $this->runPreArtifactCommands();
     $this->removeAllGitFolders();
+    $this->removeGitIgnore();
     $this->generateGitIgnore();
     $this->cleanIgnoredFilesFromArtifact();
     $this->log('Artifact generated successfully');
@@ -197,8 +197,6 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
       "/$docroot/sites/*/files",
       '/private-files/*',
       '# OS X files.',
-      '.DS_STORE',
-      '.Ds_Store',
       '.DS_Store',
       '# Linux files.',
       '.directory',
@@ -234,21 +232,27 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
       '/.editorconfig',
       '/.gitattributes',
       '# Ignore documentation files everywhere except contrib modules and themes.',
+      "README.md",
+      "**/README.txt",
+      "/vendor/**/*.md",
+      "/drush/**/*.md",
+      "/$docroot/core/**/*.md",
+      "/$docroot/libraries/**/*.md",
+      "/$docroot/example.gitignore",
       "!/$docroot/modules/**/*.md",
       "!/$docroot/themes/**/*.md",
-      "!/$docroot/core/**/*.md",
-      "!/$docroot/core/**/*.txt",
-      "!/$docroot/libraries/**/*.md",
-      "!/$docroot/libraries/**/*.txt",
-      "!/$docroot/.gitignore",
-      "!/$docroot/.hash.txt",
-      "/$docroot/.csslintrc",
-      "/$docroot/.eslint*",
-      "/$docroot/example.gitignore"
-
-
-
-
+      ".csslint*",
+      "**/.csslint*",
+      ".eslint*",
+      "**/.eslint*",
+      "**/LICENSE.txt",
+      "**/CHANGELOG.txt",
+      "**/changelog.txt",
+      "**/COPYRIGHT.txt",
+      "**/INSTALL.*.txt",
+      "**/INSTALL.txt",
+      "**/UPDATE.txt",
+      "**/USAGE.txt"
     ];
   }
 
@@ -259,8 +263,10 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
     $this->log('Removing ignored files from artifact using git clean');
     $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
     $this->runCommandInFolder('git init', $artifactPath);
+    $this->runCommand(sprintf('rm -f %s/%s/.gitignore', $artifactPath, $this->calculateDocrootFolder()));
     $this->runCommandInFolder('git clean -fdX', $artifactPath);
     $this->runCommand(sprintf('rm -rf %s/.git', $artifactPath));
+    $this->runCommand(sprintf('rm -f %s/.gitignore', $artifactPath));
   }
 
 }
