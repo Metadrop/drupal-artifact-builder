@@ -233,6 +233,13 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
       '# Ignore editor config files.',
       '/.editorconfig',
       '/.gitattributes',
+      '# Ignore documentation files everywhere except contrib modules and themes.',
+      '*.md',
+      '*.txt',
+      "!/$docroot/modules/**/*.md",
+      "!/$docroot/modules/**/*.txt",
+      "!/$docroot/themes/**/*.md",
+      "!/$docroot/themes/**/*.txt",
     ];
   }
 
