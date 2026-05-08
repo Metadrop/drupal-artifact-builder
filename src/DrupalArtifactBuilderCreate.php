@@ -234,12 +234,21 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
       '/.editorconfig',
       '/.gitattributes',
       '# Ignore documentation files everywhere except contrib modules and themes.',
-      '*.md',
-      '*.txt',
       "!/$docroot/modules/**/*.md",
-      "!/$docroot/modules/**/*.txt",
       "!/$docroot/themes/**/*.md",
-      "!/$docroot/themes/**/*.txt",
+      "!/$docroot/core/**/*.md",
+      "!/$docroot/core/**/*.txt",
+      "!/$docroot/libraries/**/*.md",
+      "!/$docroot/libraries/**/*.txt",
+      "!/$docroot/.gitignore",
+      "!/$docroot/.hash.txt",
+      "/$docroot/.csslintrc",
+      "/$docroot/.eslint*",
+      "/$docroot/example.gitignore"
+
+
+
+
     ];
   }
 
