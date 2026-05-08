@@ -47,9 +47,9 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
     $this->cleanArtifactFolder();
     $this->checkoutBranchInArtifact();
     $this->generateHashFile();
-    $this->removeAllGitFolders();
     $this->removeGitIgnore();
     $this->runPreArtifactCommands();
+    $this->removeAllGitFolders();
     $this->generateGitIgnore();
     $this->cleanIgnoredFilesFromArtifact();
     $this->log('Artifact generated successfully');
