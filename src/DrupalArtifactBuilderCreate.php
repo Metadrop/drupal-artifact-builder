@@ -43,7 +43,6 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
    * @throws \Exception
    */
   protected function generateArtifact() {
-    $this->assertArtifactContentIsClean();
     $this->createArtifactFolder();
     $this->cleanArtifactFolder();
     $this->checkoutBranchInArtifact();

@@ -195,19 +195,6 @@ class BaseCommand extends Command implements ConfigurableInterface {
   }
 
   /**
-   * Assert the working tree has no uncommitted changes.
-   *
-   * @throws \Exception
-   */
-  protected function assertArtifactContentIsClean() {
-    $files_changed = trim($this->runCommand('git status -s')->getOutput());
-    if (!empty($files_changed)) {
-      throw new \Exception("There are uncommitted changes. Commit or stash before generating the artifact.\n" . $files_changed);
-    }
-
-  }
-
-  /**
    * Assert the repository is set.
    *
    * @throws \Exception
