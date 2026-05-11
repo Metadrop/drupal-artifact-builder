@@ -24,6 +24,5 @@ $app = new Application();
 $app->addCommand(new \DrupalArtifactBuilder\DrupalArtifactBuilderGit('git'));
 $app->addCommand(new \DrupalArtifactBuilder\DrupalArtifactBuilderCreate('create'));
 $app->addCommand(new \DrupalArtifactBuilder\DrupalArtifactBuilderBuild('build'));
-$app->addCommand(new \DrupalArtifactBuilder\DrupalArtifactBuilderPackage('package'));
 $app->setDefaultCommand('build');
 $app->run();

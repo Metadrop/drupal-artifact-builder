@@ -17,7 +17,7 @@ class DrupalArtifactBuilderBuild extends BaseCommand {
    */
   protected function configure(): void {
     parent::configure();
-    $this->setDescription('Creates an artifact and push the changes to git (or packages as tar.gz if no repository is configured).');
+    $this->setDescription('Creates an artifact and pushes the changes to a git repository.');
     $this->addOption('author', 'a', InputOption::VALUE_REQUIRED, 'Git commit author');
   }
 
@@ -28,14 +28,8 @@ class DrupalArtifactBuilderBuild extends BaseCommand {
     $this->log('Generating artifact');
     $this->runApplicationCommand('create', $input, $output);
 
-    if (!empty($this->getConfiguration()->getRepository())) {
-      $this->log('Adding changes to git');
-      $this->runApplicationCommand('git', $input, $output);
-    }
-    else {
-      $this->log('No repository configured - packaging artifact as tar.gz');
-      $this->runApplicationCommand('package', $input, $output);
-    }
+    $this->log('Adding changes to git');
+    $this->runApplicationCommand('git', $input, $output);
 
     $this->log(sprintf('Artifact generation finished successfully in the %s folder', $this->getArtifactFolder()));
     $this->log("Take into account that the operation removed development packages so you may want to run 'composer install'");
