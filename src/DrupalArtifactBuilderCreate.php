@@ -91,7 +91,13 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
     catch (\Exception $e) {
       $this->output->writeln(sprintf('<warning>[!] git fetch failed, artifact may not reflect the latest remote state: %s</warning>', $e->getMessage()));
     }
-    $this->runCommandInFolder(sprintf('git checkout -B %s origin/%s', escapeshellarg($branch), escapeshellarg($branch)), $artifactPath);
+    try {
+      $this->runCommandInFolder(sprintf('git checkout -fB %s origin/%s', escapeshellarg($branch), escapeshellarg($branch)), $artifactPath);
+    }
+    catch (\Exception $e) {
+      $this->log(sprintf('Branch "origin/%s" not found in remote, checking out locally', $branch));
+      $this->runCommandInFolder(sprintf('git checkout -fB %s', escapeshellarg($branch)), $artifactPath);
+    }
 
     if (file_exists($artifactPath . '/.gitmodules')) {
       $this->log('Initializing git submodules');
