@@ -69,7 +69,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
 
     $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
     $branch = $this->getConfiguration()->getBranch();
-    $tmpGit = sys_get_temp_dir() . '/drupal-artifact-' . uniqid();
+    $tmpGit = sys_get_temp_dir() . '/' . static::ARTIFACT_REPOSITORY_FOLDER . '-' . uniqid();
 
     $ls_remote = $this->runCommand(sprintf(
       'git ls-remote --heads %s %s',

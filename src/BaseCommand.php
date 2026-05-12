@@ -19,7 +19,7 @@ class BaseCommand extends Command implements ConfigurableInterface {
 
   protected static $defaultName = 'build';
 
-  const ARTIFACT_REPOSITORY_FOLDER = 'deploy-artifact-repository';
+  const ARTIFACT_REPOSITORY_FOLDER = 'drupal-artifact-builder-repository';
 
   /**
    * Folder with the codebase.
