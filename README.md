@@ -23,6 +23,15 @@ cp vendor/metadrop/drupal-artifact-builder/.drupal-artifact-builder.yml.dist .dr
 
 #### Configuration properties
 
+- **commands**: Commands to run inside the artifact folder before packaging.
+
+    Example:
+    ```yaml
+    commands:
+        - composer install
+        - cd web/themes/custom/foo/ && npm run build
+    ```
+
 - **repository**: Repository URL (git SSH / git HTTP URL).
 
     Example:
