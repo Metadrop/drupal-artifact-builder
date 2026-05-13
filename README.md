@@ -80,6 +80,7 @@ drupal-artifact-builder git
 
 ### Parameters
 
+- **branch**: Branch to create the artifact from / to. Required.
 
 - **config**: Allow setting the configuration file. Defaults to .drupal-artifact-builder.yml
 
