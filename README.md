@@ -28,8 +28,8 @@ cp vendor/metadrop/drupal-artifact-builder/.drupal-artifact-builder.yml.dist .dr
     Example:
     ```yaml
     commands:
-        - composer install
-        - cd web/themes/custom/foo/ && npm run build
+        - composer install --no-dev
+        - cd web/themes/custom/foo/ && npm install && npm run production
     ```
 
 - **repository**: Repository URL (git SSH / git HTTP URL).
@@ -145,7 +145,7 @@ These steps must be followed in order to upgrade to the 2.0.0 version:
    drupal-artifact-builder --include solr
    ```
 
-3. Stop using GIT_BRANCH environment variable, not it is --branch
+3. Stop using GIT_BRANCH environment variable, now it is --branch
 
    Before:
 
@@ -158,3 +158,14 @@ These steps must be followed in order to upgrade to the 2.0.0 version:
    ```bash
    drupal-artifact-builder --branch develop
    ```
+
+## Upgrade from 2.x to 3.x
+
+To be able to bring composer libraries and compile the custom theme, configure `commands` in .drupal-artifact-builder.yml.
+
+    Example:
+    ```yaml
+    commands:
+        - composer install --no-dev
+        - cd web/themes/custom/foo/ && npm install && npm run production
+    ```
