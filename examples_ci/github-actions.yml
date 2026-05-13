@@ -1,0 +1,36 @@
+name: Deploy Drupal artifact to another github repository
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build-artifact:
+    runs-on: ubuntu-latest
+    container:
+      # Adapt this image to your node and php versions
+      image: ghcr.io/metadrop/drupal-artifact-builder-docker:php8.3-node20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH for artifact repository
+        run: |
+          mkdir -p /root/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
+          chmod 600 /root/.ssh/id_rsa
+          ssh-keyscan -H github.com >> /root/.ssh/known_hosts
+          chmod 644 /root/.ssh/known_hosts
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.ARTIFACT_DEPLOY_KEY }}
+
+      - name: Install Composer dependencies to have drupal-artifact-builder available
+        run: composer install --no-dev --optimize-autoloader --prefer-dist
+
+      - name: Build and push artifact
+        run: vendor/bin/drupal-artifact-builder build --branch "$BRANCH"
+        env:
+          BRANCH: ${{ github.ref_name }}
