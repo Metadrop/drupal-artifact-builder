@@ -7,7 +7,7 @@ interface ConfigInterface
 
   const DEFAULT_COMMIT_AUTHOR = 'Drupal <drupal@artifact-builder>';
 
-  const DEFAULT_ARTIFACT_FOLDER = 'deploy-artifact';
+  const DEFAULT_ARTIFACT_FOLDER = 'drupal-artifact-builder-artifact';
 
   /**
    * Branch where artifact is pushed.
