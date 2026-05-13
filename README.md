@@ -143,54 +143,6 @@ A ready-to-use workflow is available at [`examples_ci/github-actions.yml`](examp
 
 The workflow runs inside the [`ghcr.io/metadrop/drupal-artifact-builder-docker`](https://github.com/metadrop/drupal-artifact-builder-docker) image, which provides PHP, Composer, Node, and Git out of the box.
 
-## Upgrade from 2.x to 3.x
-
-3.0.0 clarifies the responsibilities of each command and adds new configuration options.
-
-### Command responsibilities
-- **`build`** is still available, as a wrapper for `create` and `git` commands.
-- **`create`** is now fully responsible for building the artifact. It populates the artifact folder via a git checkout of the target branch (instead of copying files), and runs any configured commands (such as `composer install --no-dev`) inside the artifact.
-- **`git`** is now only responsible for committing and pushing. It no longer modifies the artifact content.
-
-### New configuration keys
-
-Three new keys are available in `.drupal-artifact-builder.yml`:
-
-- **`commands`**: List of shell commands to run inside the artifact folder after it is populated. Use this to install production dependencies or compile assets as part of the artifact build.
-
-    Example:
-    ```yaml
-    commands:
-      - composer install --no-dev --optimize-autoloader
-    ```
-
-- **`exclude`**: List of paths to explicitly exclude from the artifact.
-
-    Example:
-    ```yaml
-    exclude:
-      - /web/sites/default/settings.local.php
-    ```
-
-- **`artifact_folder`**: Override the default output folder name (`deploy-artifact`).
-
-    Example:
-    ```yaml
-    artifact_folder: my-artifact
-    ```
-
-### Migration steps
-
-1. Update your `.drupal-artifact-builder.yml` with the new keys as needed. Copy the updated dist template as a reference:
-
-    ```bash
-    cp vendor/metadrop/drupal-artifact-builder/.drupal-artifact-builder.yml.dist .drupal-artifact-builder.yml.dist
-    ```
-
-2. If you were running `composer install --no-dev` or similar commands manually before calling `drupal-artifact-builder`, move them into the `commands` config key so they run inside the artifact folder automatically.
-
-3. No changes to command-line invocations are required.
-
 ## Upgrade from 1.x to 2.x
 
 2.0.0 release brings breaking changes and the way to use drupal-artifact-builder changes.
