@@ -96,7 +96,11 @@ class BaseCommand extends Command implements ConfigurableInterface {
    * @return string
    */
   protected function getArtifactFolder() : string {
-    return $this->getConfiguration()->getArtifactFolder();
+    $folder = $this->getConfiguration()->getArtifactFolder();
+    if (str_starts_with($folder, '/')) {
+      return $folder;
+    }
+    return $this->rootFolder . '/' . $folder;
   }
 
   /**

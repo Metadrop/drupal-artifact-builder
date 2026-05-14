@@ -67,7 +67,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
   protected function gitSetup() {
     $this->log('Setting up git');
 
-    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $artifactPath = $this->getArtifactFolder();
     $branch = $this->getConfiguration()->getBranch();
     $tmpGit = sys_get_temp_dir() . '/' . static::ARTIFACT_REPOSITORY_FOLDER . '-' . uniqid();
 
@@ -102,7 +102,7 @@ class DrupalArtifactBuilderGit extends BaseCommand {
    * Commits and pushes all artifact changes.
    */
   protected function gitCommitPush() {
-    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $artifactPath = $this->getArtifactFolder();
     $branch = $this->getConfiguration()->getBranch();
 
     $this->runCommandInFolder('git add .', $artifactPath);

@@ -82,7 +82,7 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
    */
   protected function cleanArtifactFolder() {
     $this->log('Cleaning previous artifact content');
-    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $artifactPath = $this->getArtifactFolder();
     $this->runCommand(sprintf('rm -rf %s', $artifactPath));
     $this->runCommand(sprintf('mkdir -p %s', $artifactPath));
   }
@@ -106,7 +106,7 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
    * Populates the artifact folder using git archive on the target branch.
    */
   protected function populateArtifactFromGit() {
-    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $artifactPath = $this->getArtifactFolder();
     $branch = $this->getConfiguration()->getBranch();
 
     $this->log(sprintf('Archiving branch "%s" into artifact folder', $branch));
@@ -149,13 +149,17 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
    * plain files since there is no git context to resolve gitlinks.
    */
   protected function copySourceWithRsync() {
-    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $artifactPath = $this->getArtifactFolder();
     $this->log('Copying source tree to artifact folder using rsync');
 
+    $excludeArtifact = str_starts_with($artifactPath, $this->rootFolder)
+      ? '--exclude=' . escapeshellarg(substr($artifactPath, strlen($this->rootFolder) + 1) . '/')
+      : '';
+
     $command = sprintf(
-      'rsync -a %s/ --exclude=.git --exclude=%s %s %s/',
+      'rsync -a %s/ --exclude=.git %s %s %s/',
       escapeshellarg($this->rootFolder),
-      escapeshellarg($this->getArtifactFolder() . '/'),
+      $excludeArtifact,
       '--filter=' . escapeshellarg(':- ' . $this->rootFolder . '/.gitignore'),
       escapeshellarg($artifactPath)
     );
@@ -205,7 +209,7 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
    * so downstream consumers do not break.
    */
   protected function generateHashFile() {
-    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $artifactPath = $this->getArtifactFolder();
     if (!$this->sourceHasGit) {
       $hash = 'no-git-' . date('Ymd-His');
       $this->log(sprintf('No source git repository — writing timestamp placeholder to hash.txt: %s', $hash));
@@ -222,7 +226,7 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
    */
   protected function removeAllGitFolders() {
     $this->log('Removing .git folders from artifact');
-    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $artifactPath = $this->getArtifactFolder();
     $this->runCommandInFolder('find . -name ".git" -exec rm -rf {} +', $artifactPath);
   }
 
@@ -230,7 +234,7 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
    * Removes the project .gitignore from the artifact.
    */
   protected function removeGitIgnore() {
-    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $artifactPath = $this->getArtifactFolder();
     $this->runCommand(sprintf('rm -f %s/.gitignore', $artifactPath));
   }
 
@@ -242,7 +246,7 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
     if (empty($commands)) {
       return;
     }
-    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $artifactPath = $this->getArtifactFolder();
     foreach ($commands as $command) {
       $this->log(sprintf('Running pre-artifact command: %s', $command));
       $this->runCommandInFolder($command, $artifactPath);
@@ -253,7 +257,7 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
    * Generates the artifact .gitignore with base patterns plus include/exclude config.
    */
   protected function generateGitIgnore() {
-    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $artifactPath = $this->getArtifactFolder();
     $docroot = $this->calculateDocrootFolder();
 
     $patterns = $this->getBaseGitIgnorePatterns($docroot);
@@ -490,7 +494,7 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
    */
   protected function cleanIgnoredFilesFromArtifact() {
     $this->log('Removing ignored files from artifact using git clean');
-    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $artifactPath = $this->getArtifactFolder();
     $this->runCommandInFolder('git init', $artifactPath);
     $this->runCommand(sprintf('rm -f %s/%s/.gitignore', $artifactPath, $this->calculateDocrootFolder()));
     $this->runCommandInFolder('git clean -fdX', $artifactPath);
