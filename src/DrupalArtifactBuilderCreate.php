@@ -108,9 +108,9 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
 
     if (file_exists($this->rootFolder . '/.gitmodules')) {
       $this->log('Initializing git submodules included in the artifact');
-      $submodulesToInit = $this->getArtifactSubmodulePaths();
-      if (!empty($submodulesToInit)) {
-        $pathArgs = implode(' ', array_map('escapeshellarg', $submodulesToInit));
+      $submodulesToArchive = $this->getArtifactSubmodulePaths();
+      if (!empty($submodulesToArchive)) {
+        $pathArgs = implode(' ', array_map('escapeshellarg', array_keys($submodulesToArchive)));
         $this->runCommand(sprintf('git submodule update --init -- %s', $pathArgs));
         $this->runCommand(sprintf('git submodule update --recursive -- %s', $pathArgs));
         $submoduleAbsPaths = trim($this->runCommand('git submodule foreach --quiet --recursive pwd')->getOutput());
@@ -122,8 +122,14 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
           $submoduleRelPath = ltrim(str_replace($this->rootFolder, '', $submoduleAbsPath), '/');
           $submoduleArtifactPath = $artifactPath . '/' . $submoduleRelPath;
           $this->runCommand(sprintf('mkdir -p %s', escapeshellarg($submoduleArtifactPath)));
+
+          $subpaths = $submodulesToArchive[$submoduleRelPath] ?? [];
+          $pathspec = '';
+          if (!empty($subpaths)) {
+            $pathspec = ' -- ' . implode(' ', array_map('escapeshellarg', $subpaths));
+          }
           $this->runCommandInFolder(
-            sprintf('git archive HEAD | tar -xC %s', escapeshellarg($submoduleArtifactPath)),
+            sprintf('git archive HEAD%s | tar -xC %s', $pathspec, escapeshellarg($submoduleArtifactPath)),
             $submoduleAbsPath
           );
         }
@@ -184,33 +190,58 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
 
     $patterns = $this->getBaseGitIgnorePatterns($docroot);
 
-    $whitelist = array_merge(
-      $this->getRequiredFiles(),
-      $this->getSymlinks(),
-      array_map(fn($p) => ltrim($p, '/'), $this->getConfiguration()->getInclude()),
-      ['.gitignore']
-    );
+    $whitelist = array_merge($this->getWhitelistPaths(), ['.gitignore']);
+
+    // Ignore every root entry whose top-level segment is not whitelisted.
+    $topLevelKeep = [];
+    foreach ($whitelist as $path) {
+      $segments = explode('/', $path);
+      $topLevelKeep[$segments[0]] = TRUE;
+    }
     $artifactRootEntries = array_filter(
       scandir($artifactPath),
       fn($entry) => !in_array($entry, ['.', '..', '.git'])
     );
-    foreach (array_diff($artifactRootEntries, $whitelist) as $extra) {
-      $patterns[] = '/' . $extra;
+    foreach ($artifactRootEntries as $entry) {
+      if (!isset($topLevelKeep[$entry])) {
+        $patterns[] = '/' . $entry;
+      }
+    }
+
+    // For each deep whitelist path, emit the gitignore ladder so every
+    // ancestor stays reachable but siblings at each level are ignored.
+    $emitted = [];
+    foreach ($whitelist as $path) {
+      $segments = explode('/', $path);
+      if (count($segments) < 2) {
+        continue;
+      }
+      $prefix = '';
+      for ($i = 0, $n = count($segments) - 1; $i < $n; $i++) {
+        $prefix .= '/' . $segments[$i];
+        $ignoreSiblings = $prefix . '/*';
+        $unignoreChild = '!' . $prefix . '/' . $segments[$i + 1];
+        if (!isset($emitted[$ignoreSiblings])) {
+          $patterns[] = $ignoreSiblings;
+          $emitted[$ignoreSiblings] = TRUE;
+        }
+        if (!isset($emitted[$unignoreChild])) {
+          $patterns[] = $unignoreChild;
+          $emitted[$unignoreChild] = TRUE;
+        }
+      }
     }
 
     foreach ($this->getConfiguration()->getExclude() as $excludePath) {
       $patterns[] = $excludePath;
     }
 
+    // For include entries that point at a file, an explicit negation is
+    // needed because the ladder above only re-includes directory segments.
     foreach ($this->getConfiguration()->getInclude() as $includePath) {
-      $normalizedPath = '/' . ltrim($includePath, '/');
-      if (is_file($artifactPath . '/' . ltrim($includePath, '/'))) {
-        $patterns[] = '!' . $normalizedPath;
-      }
-      else {
-        $patterns = array_values(array_filter($patterns, function ($pattern) use ($normalizedPath) {
-          return $pattern !== $normalizedPath && $pattern !== rtrim($normalizedPath, '/') . '/';
-        }));
+      $relative = ltrim($includePath, '/');
+      if (is_file($artifactPath . '/' . $relative)) {
+        $patterns[] = '!/' . $relative;
       }
     }
 
@@ -295,43 +326,95 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
   }
 
   /**
-   * Returns submodule paths that fall under artifact-included directories.
+   * Returns submodule paths that intersect artifact-included paths.
    *
-   * @return string[]
+   * @return array<string, string[]>
+   *   Map of submodule path => list of subpaths (relative to the submodule
+   *   root) that must be archived. An empty list means archive the whole
+   *   submodule.
    */
   protected function getArtifactSubmodulePaths(): array {
-    $includedPaths = array_merge(
-      $this->getRequiredFiles(),
-      $this->getSymlinks(),
-      array_map(fn($p) => ltrim($p, '/'), $this->getConfiguration()->getInclude())
-    );
+    $includedPaths = $this->getWhitelistPaths();
 
     $output = trim($this->runCommand('git config --file .gitmodules --get-regexp \'\.path$\'')->getOutput());
     if (empty($output)) {
       return [];
     }
 
-    $submodulePaths = [];
+    $submodules = [];
     foreach (explode("\n", $output) as $line) {
       $parts = preg_split('/\s+/', trim($line), 2);
-      $submodulePath = $parts[1] ?? '';
+      $submodulePath = trim($parts[1] ?? '');
       if (empty($submodulePath)) {
         continue;
       }
+
+      $subpaths = [];
+      $wholeSubmodule = FALSE;
       foreach ($includedPaths as $includedPath) {
-        if ($submodulePath === $includedPath || str_starts_with($submodulePath, rtrim($includedPath, '/') . '/')) {
-          $submodulePaths[] = $submodulePath;
+        if ($includedPath === $submodulePath || $this->pathIsAtOrUnder($submodulePath, $includedPath)) {
+          // The include covers the entire submodule (use case 1).
+          $wholeSubmodule = TRUE;
           break;
         }
+        if ($this->pathIsAtOrUnder($includedPath, $submodulePath)) {
+          // The include is a subpath inside the submodule (use case 2).
+          $subpaths[] = substr($includedPath, strlen($submodulePath) + 1);
+        }
+      }
+
+      if ($wholeSubmodule) {
+        $submodules[$submodulePath] = [];
+      }
+      elseif (!empty($subpaths)) {
+        $submodules[$submodulePath] = array_values(array_unique($subpaths));
       }
     }
 
+    $log = [];
+    foreach ($submodules as $path => $subpaths) {
+      $log[] = empty($subpaths) ? $path : ($path . ' (subpaths: ' . implode(', ', $subpaths) . ')');
+    }
     $this->log(sprintf(
       'Submodules included in artifact: %s',
-      empty($submodulePaths) ? '(none)' : implode(', ', $submodulePaths)
+      empty($log) ? '(none)' : implode('; ', $log)
     ));
 
-    return $submodulePaths;
+    return $submodules;
+  }
+
+  /**
+   * Returns the full whitelist of paths that must end up in the artifact.
+   *
+   * @return string[]
+   *   Normalised paths (no leading slash, no trailing slash).
+   */
+  protected function getWhitelistPaths(): array {
+    $paths = array_merge(
+      $this->getRequiredFiles(),
+      $this->getSymlinks(),
+      $this->getConfiguration()->getInclude()
+    );
+    $normalised = [];
+    foreach ($paths as $path) {
+      $path = trim($path, '/');
+      if ($path !== '') {
+        $normalised[$path] = $path;
+      }
+    }
+    return array_values($normalised);
+  }
+
+  /**
+   * Whether $candidate is at or under $parent (segment-wise).
+   */
+  protected function pathIsAtOrUnder(string $candidate, string $parent): bool {
+    $candidate = trim($candidate, '/');
+    $parent = trim($parent, '/');
+    if ($candidate === $parent) {
+      return TRUE;
+    }
+    return str_starts_with($candidate, $parent . '/');
   }
 
   /**
