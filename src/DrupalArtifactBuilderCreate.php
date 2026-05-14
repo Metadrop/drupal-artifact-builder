@@ -107,22 +107,26 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
     ));
 
     if (file_exists($this->rootFolder . '/.gitmodules')) {
-      $this->log('Initializing git submodules');
-      $this->runCommand('git submodule update --init');
-      $this->runCommand('git submodule update --recursive');
-      $submodulePaths = trim($this->runCommand('git submodule foreach --quiet --recursive pwd')->getOutput());
-      foreach (explode("\n", $submodulePaths) as $submoduleAbsPath) {
-        $submoduleAbsPath = trim($submoduleAbsPath);
-        if (empty($submoduleAbsPath)) {
-          continue;
+      $this->log('Initializing git submodules included in the artifact');
+      $submodulesToInit = $this->getArtifactSubmodulePaths();
+      if (!empty($submodulesToInit)) {
+        $pathArgs = implode(' ', array_map('escapeshellarg', $submodulesToInit));
+        $this->runCommand(sprintf('git submodule update --init -- %s', $pathArgs));
+        $this->runCommand(sprintf('git submodule update --recursive -- %s', $pathArgs));
+        $submoduleAbsPaths = trim($this->runCommand('git submodule foreach --quiet --recursive pwd')->getOutput());
+        foreach (explode("\n", $submoduleAbsPaths) as $submoduleAbsPath) {
+          $submoduleAbsPath = trim($submoduleAbsPath);
+          if (empty($submoduleAbsPath)) {
+            continue;
+          }
+          $submoduleRelPath = ltrim(str_replace($this->rootFolder, '', $submoduleAbsPath), '/');
+          $submoduleArtifactPath = $artifactPath . '/' . $submoduleRelPath;
+          $this->runCommand(sprintf('mkdir -p %s', escapeshellarg($submoduleArtifactPath)));
+          $this->runCommandInFolder(
+            sprintf('git archive HEAD | tar -xC %s', escapeshellarg($submoduleArtifactPath)),
+            $submoduleAbsPath
+          );
         }
-        $submoduleRelPath = ltrim(str_replace($this->rootFolder, '', $submoduleAbsPath), '/');
-        $submoduleArtifactPath = $artifactPath . '/' . $submoduleRelPath;
-        $this->runCommand(sprintf('mkdir -p %s', escapeshellarg($submoduleArtifactPath)));
-        $this->runCommandInFolder(
-          sprintf('git archive HEAD | tar -xC %s', escapeshellarg($submoduleArtifactPath)),
-          $submoduleAbsPath
-        );
       }
     }
   }
@@ -288,6 +292,46 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
       "**/UPDATE.txt",
       "**/USAGE.txt"
     ];
+  }
+
+  /**
+   * Returns submodule paths that fall under artifact-included directories.
+   *
+   * @return string[]
+   */
+  protected function getArtifactSubmodulePaths(): array {
+    $includedPaths = array_merge(
+      $this->getRequiredFiles(),
+      $this->getSymlinks(),
+      array_map(fn($p) => ltrim($p, '/'), $this->getConfiguration()->getInclude())
+    );
+
+    $output = trim($this->runCommand('git config --file .gitmodules --get-regexp \'\.path$\'')->getOutput());
+    if (empty($output)) {
+      return [];
+    }
+
+    $submodulePaths = [];
+    foreach (explode("\n", $output) as $line) {
+      $parts = preg_split('/\s+/', trim($line), 2);
+      $submodulePath = $parts[1] ?? '';
+      if (empty($submodulePath)) {
+        continue;
+      }
+      foreach ($includedPaths as $includedPath) {
+        if ($submodulePath === $includedPath || str_starts_with($submodulePath, rtrim($includedPath, '/') . '/')) {
+          $submodulePaths[] = $submodulePath;
+          break;
+        }
+      }
+    }
+
+    $this->log(sprintf(
+      'Submodules included in artifact: %s',
+      empty($submodulePaths) ? '(none)' : implode(', ', $submodulePaths)
+    ));
+
+    return $submodulePaths;
   }
 
   /**
