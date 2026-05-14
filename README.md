@@ -119,6 +119,25 @@ drupal-artifact-builder git
     drupal-artifact-builder --repository git@example.com:example/example.git --include=oauth.json,mycustomapp
     ```
 
+### Artifact folder location
+
+By default the artifact is built inside the system temporary directory (the value of `sys_get_temp_dir()`, typically `/tmp` on Linux). This means **you do not need to add the artifact folder to `.gitignore`**.
+
+To use a different location, pass the `--artifact-folder` option:
+
+```
+drupal-artifact-builder --artifact-folder /custom/path/artifact
+drupal-artifact-builder --artifact-folder relative/path/artifact
+```
+
+Relative paths are resolved from the Drupal project root. Absolute paths are used as-is.
+
+In sandboxed CI environments where `/tmp` is not writable, override the base temp directory via the standard `TMPDIR` environment variable:
+
+```
+TMPDIR=/workspace/tmp drupal-artifact-builder
+```
+
 ### Running without a source git repository
 
 `drupal-artifact-builder create` normally relies on the source project being a git working tree. When run in an environment where the codebase is present on disk without a `.git` directory (for example, when it has been extracted from a tarball or a snapshot in a CI image), the command bootstraps a throwaway git repository in the source root so that the same `git archive` based pipeline can be used, and removes it after the artifact is generated.

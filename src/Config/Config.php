@@ -35,8 +35,11 @@ class Config implements ConfigInterface {
     protected array $branches_map = [],
     protected array $exclude = [],
     protected array $commands = [],
-    protected string $artifact_folder = self::DEFAULT_ARTIFACT_FOLDER,
+    protected string $artifact_folder = '',
   ) {
+    if ($this->artifact_folder === '') {
+      $this->artifact_folder = sys_get_temp_dir() . '/' . self::DEFAULT_ARTIFACT_FOLDER;
+    }
   }
 
   /**
@@ -185,7 +188,7 @@ class Config implements ConfigInterface {
       $configuration['branches_map'] ?? [],
       $configuration['exclude'] ?? [],
       $configuration['commands'] ?? [],
-      $configuration['artifact_folder'] ?? self::DEFAULT_ARTIFACT_FOLDER,
+      $configuration['artifact_folder'] ?? '',
     );
   }
 
