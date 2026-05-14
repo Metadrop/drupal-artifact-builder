@@ -74,34 +74,56 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
   }
 
   /**
-   * Copies project .git into the artifact folder and checks out the target branch.
+   * Archives the target branch from origin into the artifact folder via git archive.
    *
-   * Git checkout populates all files — no manual file copying needed.
+   * No .git directory is copied; files are extracted directly from the git object store.
    */
   protected function checkoutBranchInArtifact() {
     $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
     $branch = $this->getConfiguration()->getBranch();
 
-    $this->log(sprintf('Checking out branch "%s" into artifact folder', $branch));
+    $this->log(sprintf('Archiving branch "%s" into artifact folder', $branch));
 
-    $this->runCommand(sprintf('cp -r %s/.git %s/.git', $this->rootFolder, $artifactPath));
     try {
-      $this->runCommandInFolder('git fetch origin', $artifactPath);
+      $this->runCommand(sprintf('git fetch origin %s', escapeshellarg($branch)));
     }
     catch (\Exception $e) {
       $this->output->writeln(sprintf('<warning>[!] git fetch failed, artifact may not reflect the latest remote state: %s</warning>', $e->getMessage()));
     }
+
+    $treeish = 'origin/' . $branch;
     try {
-      $this->runCommandInFolder(sprintf('git checkout -fB %s origin/%s', escapeshellarg($branch), escapeshellarg($branch)), $artifactPath);
+      $this->runCommand(sprintf('git rev-parse --verify %s', escapeshellarg($treeish)));
     }
     catch (\Exception $e) {
-      $this->log(sprintf('Branch "origin/%s" not found in remote, checking out locally', $branch));
-      $this->runCommandInFolder(sprintf('git checkout -fB %s', escapeshellarg($branch)), $artifactPath);
+      $this->log(sprintf('Branch "origin/%s" not found in remote, using local branch', $branch));
+      $treeish = $branch;
     }
 
-    if (file_exists($artifactPath . '/.gitmodules')) {
+    $this->runCommand(sprintf(
+      'git archive %s | tar -xC %s',
+      escapeshellarg($treeish),
+      escapeshellarg($artifactPath)
+    ));
+
+    if (file_exists($this->rootFolder . '/.gitmodules')) {
       $this->log('Initializing git submodules');
-      $this->runCommandInFolder('git submodule update --init', $artifactPath);
+      $this->runCommand('git submodule update --init');
+      $this->runCommand('git submodule update --recursive');
+      $submodulePaths = trim($this->runCommand('git submodule foreach --quiet --recursive pwd')->getOutput());
+      foreach (explode("\n", $submodulePaths) as $submoduleAbsPath) {
+        $submoduleAbsPath = trim($submoduleAbsPath);
+        if (empty($submoduleAbsPath)) {
+          continue;
+        }
+        $submoduleRelPath = ltrim(str_replace($this->rootFolder, '', $submoduleAbsPath), '/');
+        $submoduleArtifactPath = $artifactPath . '/' . $submoduleRelPath;
+        $this->runCommand(sprintf('mkdir -p %s', escapeshellarg($submoduleArtifactPath)));
+        $this->runCommandInFolder(
+          sprintf('git archive HEAD | tar -xC %s', escapeshellarg($submoduleArtifactPath)),
+          $submoduleAbsPath
+        );
+      }
     }
   }
 
