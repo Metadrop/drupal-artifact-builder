@@ -281,7 +281,7 @@ class BaseCommand extends Command implements ConfigurableInterface {
    */
   protected function isGitRepository() {
     $command_output = $this->runCommand('git rev-parse --is-inside-work-tree || true')->getOutput();
-    return $command_output === 'true';
+    return trim($command_output) === 'true';
   }
 
 }
