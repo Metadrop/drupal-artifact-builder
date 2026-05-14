@@ -29,14 +29,6 @@ class BaseCommand extends Command implements ConfigurableInterface {
   protected string $rootFolder;
 
   /**
-   * Whether the source root has been temporarily turned into a git repo by
-   * this command because no real .git was present at startup.
-   *
-   * @var bool
-   */
-  protected bool $syntheticGit = false;
-
-  /**
    * Configuration.
    *
    * @var \DrupalArtifactBuilder\Config\ConfigInterface

@@ -12,6 +12,13 @@ use Symfony\Component\Console\Output\OutputInterface;
 class DrupalArtifactBuilderCreate extends BaseCommand {
 
   /**
+   * Whether the source root is a git repository.
+   *
+   * @var bool
+   */
+  protected bool $sourceHasGit;
+
+  /**
    * {@inheritdoc}
    */
   protected function configure(): void {
@@ -24,14 +31,14 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
    */
   protected function initialize(InputInterface $input, OutputInterface $output): void {
     parent::initialize($input, $output);
-    $this->syntheticGit = !$this->isGitRepository();
-    if ($this->syntheticGit && empty($input->getOption('branch'))) {
+    $this->sourceHasGit = $this->isGitRepository();
+    if (!$this->sourceHasGit && empty($input->getOption('branch'))) {
       throw new \RuntimeException('--branch is required when running outside a git repository.');
     }
     $branch = $this->getBranch($input);
     $this->getConfiguration()->setBranch($branch);
     $this->log(sprintf('Target artifact branch: %s', $this->getConfiguration()->getBranch()));
-    if ($this->syntheticGit) {
+    if (!$this->sourceHasGit) {
       $this->log('No git repository detected in source root — will use rsync for artifact generation.');
     }
   }
@@ -52,7 +59,7 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
   protected function generateArtifact() {
     $this->createArtifactFolder();
     $this->cleanArtifactFolder();
-    $this->checkoutBranchInArtifact();
+    $this->populateArtifact();
     $this->generateHashFile();
     $this->runPreArtifactCommands();
     $this->removeAllGitFolders();
@@ -83,16 +90,22 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
   /**
    * Populates the artifact folder from the source tree.
    *
-   * When a git repository is present, uses git archive on the target branch.
-   * When no git repository is present, uses rsync with the root .gitignore as
-   * the filter file so excluded files are not copied.
+   * Delegates to git archive when a git repository is present, or rsync when
+   * no git repository is available.
    */
-  protected function checkoutBranchInArtifact() {
-    if ($this->syntheticGit) {
-      $this->copySourceWithRsync();
-      return;
+  protected function populateArtifact() {
+    if ($this->sourceHasGit) {
+      $this->populateArtifactFromGit();
     }
+    else {
+      $this->copySourceWithRsync();
+    }
+  }
 
+  /**
+   * Populates the artifact folder using git archive on the target branch.
+   */
+  protected function populateArtifactFromGit() {
     $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
     $branch = $this->getConfiguration()->getBranch();
 
@@ -188,14 +201,14 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
   /**
    * Writes hash.txt to docroot using the original repo commit hash.
    *
-   * When no git repository is present a synthetic-<timestamp> placeholder is
-   * written so downstream consumers do not break.
+   * When no git repository is present a timestamp-based placeholder is written
+   * so downstream consumers do not break.
    */
   protected function generateHashFile() {
     $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
-    if ($this->syntheticGit) {
-      $hash = 'synthetic-' . date('Ymd-His');
-      $this->log(sprintf('Generated hash.txt with synthetic placeholder (no source git repo): %s', $hash));
+    if (!$this->sourceHasGit) {
+      $hash = 'no-git-' . date('Ymd-His');
+      $this->log(sprintf('No source git repository — writing timestamp placeholder to hash.txt: %s', $hash));
     }
     else {
       $hash = trim($this->runCommand('git rev-parse HEAD')->getOutput());
