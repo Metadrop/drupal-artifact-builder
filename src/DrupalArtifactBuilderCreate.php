@@ -24,9 +24,16 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
    */
   protected function initialize(InputInterface $input, OutputInterface $output): void {
     parent::initialize($input, $output);
+    $this->syntheticGit = !$this->isGitRepository();
+    if ($this->syntheticGit && empty($input->getOption('branch'))) {
+      throw new \RuntimeException('--branch is required when running outside a git repository.');
+    }
     $branch = $this->getBranch($input);
     $this->getConfiguration()->setBranch($branch);
     $this->log(sprintf('Target artifact branch: %s', $this->getConfiguration()->getBranch()));
+    if ($this->syntheticGit) {
+      $this->log('No git repository detected in source root — will bootstrap a temporary one for artifact generation.');
+    }
   }
 
   /**
@@ -38,21 +45,123 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
   }
 
   /**
+   * Tracks per-submodule absolute paths where this command bootstrapped a
+   * throwaway .git directory. Used to scope cleanup to repos we created.
+   *
+   * @var string[]
+   */
+  protected array $bootstrappedSubmoduleGits = [];
+
+  /**
    * Generates the artifact.
    *
    * @throws \Exception
    */
   protected function generateArtifact() {
-    $this->createArtifactFolder();
-    $this->cleanArtifactFolder();
-    $this->checkoutBranchInArtifact();
-    $this->generateHashFile();
-    $this->runPreArtifactCommands();
-    $this->removeAllGitFolders();
-    $this->removeGitIgnore();
-    $this->generateGitIgnore();
-    $this->cleanIgnoredFilesFromArtifact();
-    $this->log('Artifact generated successfully');
+    $rootBootstrapped = FALSE;
+    if ($this->syntheticGit) {
+      $excludes = [];
+      if (file_exists($this->rootFolder . '/.gitmodules')) {
+        $excludes = array_keys($this->getSubmodulePathsFromGitmodules());
+      }
+      $this->bootstrapSyntheticGit($this->rootFolder, $this->getConfiguration()->getBranch(), $excludes);
+      $rootBootstrapped = TRUE;
+    }
+
+    try {
+      $this->createArtifactFolder();
+      $this->cleanArtifactFolder();
+      $this->checkoutBranchInArtifact();
+      $this->generateHashFile();
+      $this->runPreArtifactCommands();
+      $this->removeAllGitFolders();
+      $this->removeGitIgnore();
+      $this->generateGitIgnore();
+      $this->cleanIgnoredFilesFromArtifact();
+      $this->log('Artifact generated successfully');
+    }
+    finally {
+      foreach ($this->bootstrappedSubmoduleGits as $path) {
+        $this->teardownSyntheticGit($path);
+      }
+      $this->bootstrappedSubmoduleGits = [];
+      if ($rootBootstrapped) {
+        $this->teardownSyntheticGit($this->rootFolder);
+      }
+    }
+  }
+
+  /**
+   * Initializes a throwaway git repo in $folder so git-archive based steps work.
+   *
+   * @param string $folder
+   *   Absolute path of the folder to turn into a git repo.
+   * @param string $branch
+   *   Branch name to use for the initial commit.
+   * @param string[] $excludePaths
+   *   Repository-relative paths that must not be added to the initial commit
+   *   (typically submodule paths, so they are archived separately).
+   */
+  protected function bootstrapSyntheticGit(string $folder, string $branch, array $excludePaths = []) {
+    $this->log(sprintf('Bootstrapping temporary git repository in %s (branch %s)', $folder, $branch));
+
+    // Prefer `git init -b` (Git >= 2.28); fall back to a post-init checkout.
+    try {
+      $this->runCommandInFolder(sprintf('git init -b %s', escapeshellarg($branch)), $folder);
+    }
+    catch (\Exception $e) {
+      $this->runCommandInFolder('git init', $folder);
+      $this->runCommandInFolder(sprintf('git checkout -b %s', escapeshellarg($branch)), $folder);
+    }
+
+    $pathspecs = '.';
+    foreach ($excludePaths as $excludePath) {
+      $pathspecs .= ' ' . escapeshellarg(':(exclude)' . trim($excludePath, '/'));
+    }
+    $this->runCommandInFolder(sprintf('git add -- %s', $pathspecs), $folder);
+
+    $commitCommand = 'git -c user.email=artifact-builder@local -c user.name="Artifact Builder" '
+      . 'commit -m "Synthetic artifact-builder commit" --allow-empty --no-verify';
+    $this->runCommandInFolder($commitCommand, $folder);
+  }
+
+  /**
+   * Removes a .git directory previously created by bootstrapSyntheticGit().
+   *
+   * Idempotent: missing .git is treated as success.
+   *
+   * @param string $folder
+   *   Absolute path whose .git should be removed.
+   */
+  protected function teardownSyntheticGit(string $folder) {
+    $this->log(sprintf('Removing temporary git repository in %s', $folder));
+    $this->runCommand(sprintf('rm -rf %s/.git', escapeshellarg($folder)));
+  }
+
+  /**
+   * Returns the raw list of submodule paths declared in .gitmodules.
+   *
+   * Unlike getArtifactSubmodulePaths(), this does not intersect with the
+   * artifact whitelist — it is used to exclude every declared submodule from
+   * the root synthetic commit.
+   *
+   * @return array<string, true>
+   *   Map of submodule path => TRUE.
+   */
+  protected function getSubmodulePathsFromGitmodules(): array {
+    $output = trim($this->runCommand('git config --file .gitmodules --get-regexp \'\.path$\'')->getOutput());
+    if (empty($output)) {
+      return [];
+    }
+    $paths = [];
+    foreach (explode("\n", $output) as $line) {
+      $parts = preg_split('/\s+/', trim($line), 2);
+      $submodulePath = trim($parts[1] ?? '');
+      if (!empty($submodulePath)) {
+        $paths[$submodulePath] = TRUE;
+      }
+    }
+    return $paths;
   }
 
   /**
@@ -107,33 +216,112 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
     ));
 
     if (file_exists($this->rootFolder . '/.gitmodules')) {
-      $this->log('Initializing git submodules included in the artifact');
       $submodulesToArchive = $this->getArtifactSubmodulePaths();
       if (!empty($submodulesToArchive)) {
-        $pathArgs = implode(' ', array_map('escapeshellarg', array_keys($submodulesToArchive)));
-        $this->runCommand(sprintf('git submodule update --init -- %s', $pathArgs));
-        $this->runCommand(sprintf('git submodule update --recursive -- %s', $pathArgs));
-        $submoduleAbsPaths = trim($this->runCommand('git submodule foreach --quiet --recursive pwd')->getOutput());
-        foreach (explode("\n", $submoduleAbsPaths) as $submoduleAbsPath) {
-          $submoduleAbsPath = trim($submoduleAbsPath);
-          if (empty($submoduleAbsPath)) {
-            continue;
-          }
-          $submoduleRelPath = ltrim(str_replace($this->rootFolder, '', $submoduleAbsPath), '/');
-          $submoduleArtifactPath = $artifactPath . '/' . $submoduleRelPath;
-          $this->runCommand(sprintf('mkdir -p %s', escapeshellarg($submoduleArtifactPath)));
-
-          $subpaths = $submodulesToArchive[$submoduleRelPath] ?? [];
-          $pathspec = '';
-          if (!empty($subpaths)) {
-            $pathspec = ' -- ' . implode(' ', array_map('escapeshellarg', $subpaths));
-          }
-          $this->runCommandInFolder(
-            sprintf('git archive HEAD%s | tar -xC %s', $pathspec, escapeshellarg($submoduleArtifactPath)),
-            $submoduleAbsPath
-          );
+        if ($this->syntheticGit) {
+          $this->archiveSubmodulesSynthetic($submodulesToArchive, $artifactPath);
+        }
+        else {
+          $this->archiveSubmodulesFromRealRepo($submodulesToArchive, $artifactPath);
         }
       }
+    }
+  }
+
+  /**
+   * Archives submodules using the parent repo's submodule plumbing.
+   *
+   * @param array<string, string[]> $submodulesToArchive
+   *   Map of submodule path => list of subpaths (or [] for whole submodule).
+   * @param string $artifactPath
+   *   Absolute path of the artifact root.
+   */
+  protected function archiveSubmodulesFromRealRepo(array $submodulesToArchive, string $artifactPath) {
+    $this->log('Initializing git submodules included in the artifact');
+    $pathArgs = implode(' ', array_map('escapeshellarg', array_keys($submodulesToArchive)));
+    $this->runCommand(sprintf('git submodule update --init -- %s', $pathArgs));
+    $this->runCommand(sprintf('git submodule update --recursive -- %s', $pathArgs));
+    $submoduleAbsPaths = trim($this->runCommand('git submodule foreach --quiet --recursive pwd')->getOutput());
+    foreach (explode("\n", $submoduleAbsPaths) as $submoduleAbsPath) {
+      $submoduleAbsPath = trim($submoduleAbsPath);
+      if (empty($submoduleAbsPath)) {
+        continue;
+      }
+      $submoduleRelPath = ltrim(str_replace($this->rootFolder, '', $submoduleAbsPath), '/');
+      $submoduleArtifactPath = $artifactPath . '/' . $submoduleRelPath;
+      $this->runCommand(sprintf('mkdir -p %s', escapeshellarg($submoduleArtifactPath)));
+
+      $subpaths = $submodulesToArchive[$submoduleRelPath] ?? [];
+      $pathspec = '';
+      if (!empty($subpaths)) {
+        $pathspec = ' -- ' . implode(' ', array_map('escapeshellarg', $subpaths));
+      }
+      $this->runCommandInFolder(
+        sprintf('git archive HEAD%s | tar -xC %s', $pathspec, escapeshellarg($submoduleArtifactPath)),
+        $submoduleAbsPath
+      );
+    }
+  }
+
+  /**
+   * Archives submodules when the parent root has no real .git.
+   *
+   * Skips `git submodule update --init` (there is no submodule config in
+   * .git/config and no remote to fetch from). For each submodule directory
+   * present on disk, uses `git archive HEAD` directly if the directory is a
+   * working git repo; otherwise bootstraps a per-submodule throwaway git so
+   * the same archive pipeline still applies.
+   *
+   * @param array<string, string[]> $submodulesToArchive
+   *   Map of submodule path => list of subpaths (or [] for whole submodule).
+   * @param string $artifactPath
+   *   Absolute path of the artifact root.
+   */
+  protected function archiveSubmodulesSynthetic(array $submodulesToArchive, string $artifactPath) {
+    $this->log('Archiving submodules without git submodule update (synthetic git mode)');
+    foreach ($submodulesToArchive as $submoduleRelPath => $subpaths) {
+      $submoduleAbsPath = $this->rootFolder . '/' . $submoduleRelPath;
+      if (!is_dir($submoduleAbsPath)) {
+        $this->output->writeln(sprintf(
+          '<warning>[!] Submodule path "%s" is not present on disk; skipping.</warning>',
+          $submoduleRelPath
+        ));
+        continue;
+      }
+
+      $isWorkingRepo = trim(
+        $this->runCommandInFolder('git rev-parse --is-inside-work-tree 2>/dev/null || true', $submoduleAbsPath)->getOutput()
+      ) === 'true';
+
+      if (!$isWorkingRepo) {
+        $submoduleGitPath = $submoduleAbsPath . '/.git';
+        if (is_file($submoduleGitPath)) {
+          // Stale submodule gitlink pointing at a parent .git that no longer
+          // exists; safe to remove (it is a 1-line "gitdir:" pointer file).
+          $this->log(sprintf('Removing stale submodule gitlink at %s', $submoduleGitPath));
+          $this->runCommand(sprintf('rm -f %s', escapeshellarg($submoduleGitPath)));
+        }
+        elseif (is_dir($submoduleGitPath)) {
+          throw new \RuntimeException(sprintf(
+            'Submodule "%s" contains a .git directory but is not a working git repo. Refusing to remove it. Resolve the corruption manually and re-run.',
+            $submoduleRelPath
+          ));
+        }
+        $this->bootstrapSyntheticGit($submoduleAbsPath, 'main');
+        $this->bootstrappedSubmoduleGits[] = $submoduleAbsPath;
+      }
+
+      $submoduleArtifactPath = $artifactPath . '/' . $submoduleRelPath;
+      $this->runCommand(sprintf('mkdir -p %s', escapeshellarg($submoduleArtifactPath)));
+
+      $pathspec = '';
+      if (!empty($subpaths)) {
+        $pathspec = ' -- ' . implode(' ', array_map('escapeshellarg', $subpaths));
+      }
+      $this->runCommandInFolder(
+        sprintf('git archive HEAD%s | tar -xC %s', $pathspec, escapeshellarg($submoduleArtifactPath)),
+        $submoduleAbsPath
+      );
     }
   }
 
@@ -144,9 +332,15 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
    */
   protected function generateHashFile() {
     $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
-    $hash = trim($this->runCommand('git rev-parse HEAD')->getOutput());
+    if ($this->syntheticGit) {
+      $hash = 'synthetic-' . date('Ymd-His');
+      $this->log(sprintf('Generated hash.txt with synthetic placeholder (no source git repo): %s', $hash));
+    }
+    else {
+      $hash = trim($this->runCommand('git rev-parse HEAD')->getOutput());
+      $this->log(sprintf('Generated hash.txt: %s', $hash));
+    }
     file_put_contents($artifactPath . '/' . $this->calculateDocrootFolder() . '/hash.txt', $hash . PHP_EOL);
-    $this->log(sprintf('Generated hash.txt: %s', $hash));
   }
 
   /**

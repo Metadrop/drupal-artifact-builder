@@ -119,6 +119,18 @@ drupal-artifact-builder git
     drupal-artifact-builder --repository git@example.com:example/example.git --include=oauth.json,mycustomapp
     ```
 
+### Running without a source git repository
+
+`drupal-artifact-builder create` normally relies on the source project being a git working tree. When run in an environment where the codebase is present on disk without a `.git` directory (for example, when it has been extracted from a tarball or a snapshot in a CI image), the command bootstraps a throwaway git repository in the source root so that the same `git archive` based pipeline can be used, and removes it after the artifact is generated.
+
+Caveats in this mode:
+
+- `--branch` is mandatory; auto-detection from the current branch is not possible.
+- `hash.txt` cannot reference a real commit; it is filled with a `synthetic-YYYYMMDD-HHMMSS` placeholder.
+- Files honoured by the project's `.gitignore` are excluded from the synthetic commit, exactly as a regular `git add .` would do.
+- Submodules declared in `.gitmodules` are excluded from the root synthetic commit and processed separately. For each submodule path on disk, `git archive HEAD` is used if the submodule directory is a working git repo; otherwise a per-submodule throwaway git repo is created and torn down the same way as the root one. `git submodule update --init` is **not** run in this mode (it would require submodule remotes that are not available).
+- Pre-existing `.git` directories (root or per-submodule) are never modified.
+
 ## CI integration
 
 ### GitHub Actions
