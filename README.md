@@ -119,6 +119,15 @@ drupal-artifact-builder git
     drupal-artifact-builder --repository git@example.com:example/example.git --include=oauth.json,mycustomapp
     ```
 
+### Running without a source git repository
+
+`drupal-artifact-builder create` normally relies on the source project being a git working tree. When run in an environment where the codebase is present on disk without a `.git` directory (for example, when it has been extracted from a tarball or a snapshot in a CI image), the command bootstraps a throwaway git repository in the source root so that the same `git archive` based pipeline can be used, and removes it after the artifact is generated.
+
+Caveats in this mode:
+
+- `--branch` is mandatory; auto-detection from the current branch is not possible.
+- `hash.txt` cannot reference a real commit; it is filled with a `synthetic-YYYYMMDD-HHMMSS` placeholder.
+
 ## CI integration
 
 ### GitHub Actions

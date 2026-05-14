@@ -12,6 +12,13 @@ use Symfony\Component\Console\Output\OutputInterface;
 class DrupalArtifactBuilderCreate extends BaseCommand {
 
   /**
+   * Whether the source root is a git repository.
+   *
+   * @var bool
+   */
+  protected bool $sourceHasGit;
+
+  /**
    * {@inheritdoc}
    */
   protected function configure(): void {
@@ -24,9 +31,16 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
    */
   protected function initialize(InputInterface $input, OutputInterface $output): void {
     parent::initialize($input, $output);
+    $this->sourceHasGit = $this->isGitRepository();
+    if (!$this->sourceHasGit && empty($input->getOption('branch'))) {
+      throw new \RuntimeException('--branch is required when running outside a git repository.');
+    }
     $branch = $this->getBranch($input);
     $this->getConfiguration()->setBranch($branch);
     $this->log(sprintf('Target artifact branch: %s', $this->getConfiguration()->getBranch()));
+    if (!$this->sourceHasGit) {
+      $this->log('No git repository detected in source root — will use rsync for artifact generation.');
+    }
   }
 
   /**
@@ -45,7 +59,7 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
   protected function generateArtifact() {
     $this->createArtifactFolder();
     $this->cleanArtifactFolder();
-    $this->checkoutBranchInArtifact();
+    $this->populateArtifact();
     $this->generateHashFile();
     $this->runPreArtifactCommands();
     $this->removeAllGitFolders();
@@ -74,11 +88,24 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
   }
 
   /**
-   * Archives the target branch from origin into the artifact folder via git archive.
+   * Populates the artifact folder from the source tree.
    *
-   * No .git directory is copied; files are extracted directly from the git object store.
+   * Delegates to git archive when a git repository is present, or rsync when
+   * no git repository is available.
    */
-  protected function checkoutBranchInArtifact() {
+  protected function populateArtifact() {
+    if ($this->sourceHasGit) {
+      $this->populateArtifactFromGit();
+    }
+    else {
+      $this->copySourceWithRsync();
+    }
+  }
+
+  /**
+   * Populates the artifact folder using git archive on the target branch.
+   */
+  protected function populateArtifactFromGit() {
     $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
     $branch = $this->getConfiguration()->getBranch();
 
@@ -107,46 +134,87 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
     ));
 
     if (file_exists($this->rootFolder . '/.gitmodules')) {
-      $this->log('Initializing git submodules included in the artifact');
       $submodulesToArchive = $this->getArtifactSubmodulePaths();
       if (!empty($submodulesToArchive)) {
-        $pathArgs = implode(' ', array_map('escapeshellarg', array_keys($submodulesToArchive)));
-        $this->runCommand(sprintf('git submodule update --init -- %s', $pathArgs));
-        $this->runCommand(sprintf('git submodule update --recursive -- %s', $pathArgs));
-        $submoduleAbsPaths = trim($this->runCommand('git submodule foreach --quiet --recursive pwd')->getOutput());
-        foreach (explode("\n", $submoduleAbsPaths) as $submoduleAbsPath) {
-          $submoduleAbsPath = trim($submoduleAbsPath);
-          if (empty($submoduleAbsPath)) {
-            continue;
-          }
-          $submoduleRelPath = ltrim(str_replace($this->rootFolder, '', $submoduleAbsPath), '/');
-          $submoduleArtifactPath = $artifactPath . '/' . $submoduleRelPath;
-          $this->runCommand(sprintf('mkdir -p %s', escapeshellarg($submoduleArtifactPath)));
-
-          $subpaths = $submodulesToArchive[$submoduleRelPath] ?? [];
-          $pathspec = '';
-          if (!empty($subpaths)) {
-            $pathspec = ' -- ' . implode(' ', array_map('escapeshellarg', $subpaths));
-          }
-          $this->runCommandInFolder(
-            sprintf('git archive HEAD%s | tar -xC %s', $pathspec, escapeshellarg($submoduleArtifactPath)),
-            $submoduleAbsPath
-          );
-        }
+        $this->archiveSubmodules($submodulesToArchive, $artifactPath);
       }
+    }
+  }
+
+  /**
+   * Copies the source tree into the artifact folder using rsync.
+   *
+   * Uses the root .gitignore as the filter file and excludes the artifact
+   * folder itself to avoid recursion. Submodule directories are copied as
+   * plain files since there is no git context to resolve gitlinks.
+   */
+  protected function copySourceWithRsync() {
+    $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
+    $this->log('Copying source tree to artifact folder using rsync');
+
+    $command = sprintf(
+      'rsync -a %s/ --exclude=.git --exclude=%s %s %s/',
+      escapeshellarg($this->rootFolder),
+      escapeshellarg($this->getArtifactFolder() . '/'),
+      '--filter=' . escapeshellarg(':- ' . $this->rootFolder . '/.gitignore'),
+      escapeshellarg($artifactPath)
+    );
+
+    $this->runCommand($command);
+  }
+
+  /**
+   * Archives submodules using the parent repo's submodule plumbing.
+   *
+   * @param array<string, string[]> $submodulesToArchive
+   *   Map of submodule path => list of subpaths (or [] for whole submodule).
+   * @param string $artifactPath
+   *   Absolute path of the artifact root.
+   */
+  protected function archiveSubmodules(array $submodulesToArchive, string $artifactPath) {
+    $this->log('Initializing git submodules included in the artifact');
+    $pathArgs = implode(' ', array_map('escapeshellarg', array_keys($submodulesToArchive)));
+    $this->runCommand(sprintf('git submodule update --init -- %s', $pathArgs));
+    $this->runCommand(sprintf('git submodule update --recursive -- %s', $pathArgs));
+    $submoduleAbsPaths = trim($this->runCommand('git submodule foreach --quiet --recursive pwd')->getOutput());
+    foreach (explode("\n", $submoduleAbsPaths) as $submoduleAbsPath) {
+      $submoduleAbsPath = trim($submoduleAbsPath);
+      if (empty($submoduleAbsPath)) {
+        continue;
+      }
+      $submoduleRelPath = ltrim(str_replace($this->rootFolder, '', $submoduleAbsPath), '/');
+      $submoduleArtifactPath = $artifactPath . '/' . $submoduleRelPath;
+      $this->runCommand(sprintf('mkdir -p %s', escapeshellarg($submoduleArtifactPath)));
+
+      $subpaths = $submodulesToArchive[$submoduleRelPath] ?? [];
+      $pathspec = '';
+      if (!empty($subpaths)) {
+        $pathspec = ' -- ' . implode(' ', array_map('escapeshellarg', $subpaths));
+      }
+      $this->runCommandInFolder(
+        sprintf('git archive HEAD%s | tar -xC %s', $pathspec, escapeshellarg($submoduleArtifactPath)),
+        $submoduleAbsPath
+      );
     }
   }
 
   /**
    * Writes hash.txt to docroot using the original repo commit hash.
    *
-   * Must run before .git is removed from the artifact folder.
+   * When no git repository is present a timestamp-based placeholder is written
+   * so downstream consumers do not break.
    */
   protected function generateHashFile() {
     $artifactPath = $this->rootFolder . '/' . $this->getArtifactFolder();
-    $hash = trim($this->runCommand('git rev-parse HEAD')->getOutput());
+    if (!$this->sourceHasGit) {
+      $hash = 'no-git-' . date('Ymd-His');
+      $this->log(sprintf('No source git repository — writing timestamp placeholder to hash.txt: %s', $hash));
+    }
+    else {
+      $hash = trim($this->runCommand('git rev-parse HEAD')->getOutput());
+      $this->log(sprintf('Generated hash.txt: %s', $hash));
+    }
     file_put_contents($artifactPath . '/' . $this->calculateDocrootFolder() . '/hash.txt', $hash . PHP_EOL);
-    $this->log(sprintf('Generated hash.txt: %s', $hash));
   }
 
   /**
