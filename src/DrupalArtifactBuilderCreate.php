@@ -193,20 +193,26 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
 
     $this->log(sprintf('Archiving branch "%s" into artifact folder', $branch));
 
-    try {
-      $this->runCommand(sprintf('git fetch origin %s', escapeshellarg($branch)));
-    }
-    catch (\Exception $e) {
-      $this->output->writeln(sprintf('<warning>[!] git fetch failed, artifact may not reflect the latest remote state: %s</warning>', $e->getMessage()));
-    }
-
-    $treeish = 'origin/' . $branch;
-    try {
-      $this->runCommand(sprintf('git rev-parse --verify %s', escapeshellarg($treeish)));
-    }
-    catch (\Exception $e) {
-      $this->log(sprintf('Branch "origin/%s" not found in remote, using local branch', $branch));
+    if ($this->syntheticGit) {
+      // No remote in synthetic mode; archive directly from the local branch.
       $treeish = $branch;
+    }
+    else {
+      try {
+        $this->runCommand(sprintf('git fetch origin %s', escapeshellarg($branch)));
+      }
+      catch (\Exception $e) {
+        $this->output->writeln(sprintf('<warning>[!] git fetch failed, artifact may not reflect the latest remote state: %s</warning>', $e->getMessage()));
+      }
+
+      $treeish = 'origin/' . $branch;
+      try {
+        $this->runCommand(sprintf('git rev-parse --verify %s', escapeshellarg($treeish)));
+      }
+      catch (\Exception $e) {
+        $this->log(sprintf('Branch "origin/%s" not found in remote, using local branch', $branch));
+        $treeish = $branch;
+      }
     }
 
     $this->runCommand(sprintf(
