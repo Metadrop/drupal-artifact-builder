@@ -127,9 +127,6 @@ Caveats in this mode:
 
 - `--branch` is mandatory; auto-detection from the current branch is not possible.
 - `hash.txt` cannot reference a real commit; it is filled with a `synthetic-YYYYMMDD-HHMMSS` placeholder.
-- Files honoured by the project's `.gitignore` are excluded from the synthetic commit, exactly as a regular `git add .` would do.
-- Submodules declared in `.gitmodules` are excluded from the root synthetic commit and processed separately. For each submodule path on disk, `git archive HEAD` is used if the submodule directory is a working git repo; otherwise a per-submodule throwaway git repo is created and torn down the same way as the root one. `git submodule update --init` is **not** run in this mode (it would require submodule remotes that are not available).
-- Pre-existing `.git` directories (root or per-submodule) are never modified.
 
 ## CI integration
 
