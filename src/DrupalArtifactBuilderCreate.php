@@ -499,7 +499,6 @@ class DrupalArtifactBuilderCreate extends BaseCommand {
     $this->runCommand(sprintf('rm -f %s/%s/.gitignore', $artifactPath, $this->calculateDocrootFolder()));
     $this->runCommandInFolder('git clean -fdX', $artifactPath);
     $this->runCommand(sprintf('rm -rf %s/.git', $artifactPath));
-    $this->runCommand(sprintf('rm -f %s/.gitignore', $artifactPath));
   }
 
 }
