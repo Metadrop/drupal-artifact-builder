@@ -21,10 +21,13 @@ include: []
 # exclude
 # Additional paths to exclude from the artifact.
 # These are added as patterns to the generated .gitignore before git clean runs.
-exclude:
-  - /web/core/install.php
-  - /web/core/rebuild.php
-  - /web/core/authorize.php
+exclude: []
+# It is recommended to exclude the following files to prevent the execution of
+# scripts that may reinstall, rebuild or update your site:
+#  - /web/core/install.php
+#  - /web/core/rebuild.php
+#  - /web/core/authorize.php
+#  - /web/update.php
 
 # Example:
 # exclude:
