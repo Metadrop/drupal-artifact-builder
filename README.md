@@ -56,6 +56,25 @@ cp vendor/metadrop/drupal-artifact-builder/.drupal-artifact-builder.yml.dist .dr
       - solr
     ```
 
+- **exclude**: Extra paths to exclude from the artifact. They are added as patterns to the generated `.gitignore` before `git clean` runs, so matching files are removed from the artifact.
+
+    Example:
+    ```yaml
+    exclude:
+      - /private-files
+      - /tests
+    ```
+
+    It is recommended to exclude the following files to prevent the execution of scripts that may reinstall, rebuild or update your site:
+
+    ```yaml
+    exclude:
+      - /web/core/install.php
+      - /web/core/rebuild.php
+      - /web/core/authorize.php
+      - /web/update.php
+    ```
+
 - **author**: It will be the author used in git commits.
 
     Example:
