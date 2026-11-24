@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to coding agents when working with code in this repository.
 
 ## Project overview
 
@@ -54,6 +54,7 @@ Uses SOLID principles to implement all the logic.
 
 - `repository`: git SSH/HTTP URL
 - `include`: array of extra paths to copy into the artifact
+- `exclude`: array of paths added as patterns to the artifact `.gitignore` before `git clean`
 - `author`: git commit author string
 - `branches_map`: map of source branch → artifact branch (e.g. `develop: develop-build`)
 
