@@ -65,7 +65,7 @@ cp vendor/metadrop/drupal-artifact-builder/.drupal-artifact-builder.yml.dist .dr
       - /tests
     ```
 
-    It is recommended to exclude the following files to prevent the execution of scripts that may reinstall, rebuild or update your site:
+    It is recommended to exclude the following files to prevent the execution of scripts that may reinstall, rebuild or update your site. Exclude them only when you can be sure the site can still be managed with Drush or `dr` (the Drupal core CLI), since these tasks (database updates, cache rebuilds) will no longer be available from the browser:
 
     ```yaml
     exclude:

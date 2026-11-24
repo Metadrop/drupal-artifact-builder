@@ -23,7 +23,10 @@ include: []
 # These are added as patterns to the generated .gitignore before git clean runs.
 exclude: []
 # It is recommended to exclude the following files to prevent the execution of
-# scripts that may reinstall, rebuild or update your site:
+# scripts that may reinstall, rebuild or update your site. Exclude them only
+# when you can be sure the site can still be managed with Drush or dr (the
+# Drupal core CLI), since these tasks will no longer be available from the
+# browser:
 #  - /web/core/install.php
 #  - /web/core/rebuild.php
 #  - /web/core/authorize.php
