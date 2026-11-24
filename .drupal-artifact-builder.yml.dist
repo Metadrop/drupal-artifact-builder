@@ -21,7 +21,10 @@ include: []
 # exclude
 # Additional paths to exclude from the artifact.
 # These are added as patterns to the generated .gitignore before git clean runs.
-exclude: []
+exclude:
+  - /web/core/install.php
+  - /web/core/rebuild.php
+  - /web/core/authorize.php
 
 # Example:
 # exclude:
